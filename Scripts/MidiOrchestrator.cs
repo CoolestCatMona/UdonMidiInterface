@@ -45,6 +45,7 @@ public class MidiOrchestrator : UdonSharpBehaviour
     private float _sendRate_Hz;
     private int _noteValue;
 
+    private int _padIndex;
     /// <summary>
     /// Synchronized Color (RGBA) for materials.
     /// </summary>
@@ -209,6 +210,8 @@ public class MidiOrchestrator : UdonSharpBehaviour
             return;
 
         _noteValue = number - minNote;
+        // Visualizer Code should be removed eventually
+        MidiVisualizer.SetProgramVariable("_padIndex", _noteValue);
 
         switch (_noteValue)
         {
@@ -282,6 +285,8 @@ public class MidiOrchestrator : UdonSharpBehaviour
             return;
 
         _noteValue = number - minNote;
+        // Visualizer Code should be removed eventually
+        MidiVisualizer.SetProgramVariable("_padIndex", _noteValue);
 
         switch (_noteValue)
         {
@@ -337,6 +342,7 @@ public class MidiOrchestrator : UdonSharpBehaviour
                 buttonEvents[NOTE_16].SendCustomNetworkEvent(VRC.Udon.Common.Interfaces.NetworkEventTarget.All, "MidiOffEvent");
                 break;
         }
+
     }
 
     /// <summary>
@@ -392,6 +398,7 @@ public class MidiOrchestrator : UdonSharpBehaviour
             buttonEvent.SetProgramVariable("_sustain", _sustain);
             buttonEvent.SetProgramVariable("_release", _release);
         }
+        // Visualizer Code should be removed eventually
         MidiVisualizer.SetProgramVariable("_colorValue", _color);
         MidiVisualizer.SetProgramVariable("_attack", _attack);
         MidiVisualizer.SetProgramVariable("_delay", _delay);
