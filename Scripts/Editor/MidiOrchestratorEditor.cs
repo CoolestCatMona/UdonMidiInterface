@@ -122,11 +122,14 @@ public class MidiOrchestratorEditor : Editor
         var useVisualizer = serializedObject.FindProperty("usesVisualizer");
         useVisualizer.boolValue = EditorGUILayout.Toggle("Use Visualizer? (Resource intensive on User)", useVisualizer.boolValue);
         if (useVisualizer.boolValue)
+        {
             EditorGUI.indentLevel++;
             EditorGUILayout.PropertyField(serializedObject.FindProperty("MidiVisualizer"),new GUIContent("MIDI Visualizer"),  true);
             EditorGUI.indentLevel--;
+        }
 
         EditorGUILayout.Space(); EditorGUILayout.Space();
+
         if ((debugFoldout = EditorGUILayout.Foldout(debugFoldout, "Default Inspector (Do not modify)")))
         {
             DrawDefaultInspector();
