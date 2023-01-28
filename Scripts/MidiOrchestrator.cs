@@ -3,6 +3,7 @@ using UnityEngine;
 using VRC.SDKBase;
 using VRC.Udon;
 using VRC.Udon.Common;
+using System;
 
 #if UDONSHARP
 using static VRC.SDKBase.VRCShader;
@@ -16,23 +17,42 @@ using static UnityEngine.Shader;
 [UdonBehaviourSyncMode(BehaviourSyncMode.Manual)]
 public class MidiOrchestrator : UdonSharpBehaviour
 {
-    [Header("Misc Settings")]
     [Tooltip("Lowest note that can be pressed")]
-    public int minNote = 36;
+    public int minNote = 0;
     [Tooltip("Highest note that can be pressed")]
-    public int maxNote = 52;
+    public int maxNote = 0;
+    [Tooltip("When using pads as CCs, this is the value that separates pad values from CC values")]
+    public int padStop = 0;
     [Tooltip("Maximum amount of time (s) it should take for any change in material to occur")]
-    public int maxTime = 5;
+    public int maxTime = 0;
     [Tooltip("Update rate (Hz). Higher update rates are more computationally expensive. A good value is between 10-20Hz")]
     [Range(1, 50)]
-    public int sendRate = 20;
+    public int updateRate = 0;
     [Tooltip("Intensity of material to Sustain for the amount of time defined by the sustain knob")]
     [Range(0.0f, 1.0f)]
-    public float sustainLevel = 1.0f;
+    public float sustainLevel = 0.0f;
     [Tooltip("UdonBehaviors corresponding to individual button presses")]
     public UdonSharpBehaviour[] buttonEvents;
-    [Tooltip("Visualizer to view current settings of MIDI")]
+    [Tooltip("Use a visualizer to view the current MIDI settings")]
+    public bool usesVisualizer = false;
+    [Tooltip("Which visualizer to view current settings of MIDI")]
     public UdonSharpBehaviour MidiVisualizer;
+    [Tooltip("Use Pads as CCs")]
+    public bool padsAsCC = false;
+    [Tooltip("How much a value should change when pressed by a pad")]
+    [Range(0.0f, 1.0f)]
+    public float padCCChangeAmnt = 0.05f;
+
+
+    // TODO: Implementation
+    public bool usesLTCGI = false;
+    public bool usesAreaLit = false;
+
+    /// <summary>
+    /// Serialized fields used in editor
+    /// </summary>
+    [SerializeField] private int _controllerSelectionIndex = 1;
+    [SerializeField] private int _thirdPartySelectionIndex = 0;
 
     /// <summary>
     /// Private, intermediate values used by behavior
@@ -41,11 +61,12 @@ public class MidiOrchestrator : UdonSharpBehaviour
     private float _g = 1.0f;
     private float _b = 1.0f;
     private float _a = 1.0f;
-    private float _sendRate_s;
-    private float _sendRate_Hz;
+    private float _h = 0.0f;
+    private float _updateRate_s;
+    private float _updateRate_Hz;
     private int _noteValue;
-
     private int _padIndex;
+
     /// <summary>
     /// Synchronized Color (RGBA) for materials.
     /// </summary>
@@ -53,6 +74,12 @@ public class MidiOrchestrator : UdonSharpBehaviour
     /// https://udonsharp.docs.vrchat.com/udonsharp/#fieldchangecallback
     [UdonSynced]
     private Color _color;
+
+    /// <summary>
+    /// Multiplier for hue of color value, a value of 0 or 1 implies no change.
+    /// </summary>
+    [UdonSynced]
+    private float _hueShift;
 
     /// <summary>
     /// Amount of time (s) to reach Max value from 0
@@ -64,7 +91,7 @@ public class MidiOrchestrator : UdonSharpBehaviour
     /// Amount of time (s) to reach Sustain from Max
     /// </summary>
     [UdonSynced]
-    private float _delay = 1.0f;
+    private float _decay = 1.0f;
 
     /// <summary>
     /// The amount of time (s) to stay at the Sustain level
@@ -79,20 +106,30 @@ public class MidiOrchestrator : UdonSharpBehaviour
     private float _release = 1.0f;
 
     /// <summary>
-    /// Numbers corresponding to CC numbers on a MIDI controller.
+    /// Numbers corresponding to CC on a MIDI controller.
     /// </summary>
-    private const int RED = 10;
-    private const int GREEN = 74;
-    private const int BLUE = 71;
-    private const int ALPHA = 76; // Change to Hue Shift(?)
-    private const int ATTACK = 114;
-    private const int DELAY = 18;
-    private const int SUSTAIN = 19;
-    private const int RELEASE = 16;
+    [SerializeField] private int RED = 10;
+    [SerializeField] private int GREEN = 74;
+    [SerializeField] private int BLUE = 71;
+    [SerializeField] private int HUE = 76;
+    [SerializeField] private int ATTACK = 114;
+    [SerializeField] private int DECAY = 18;
+    [SerializeField] private int SUSTAIN = 19;
+    [SerializeField] private int RELEASE = 16;
+
+    // When using pads, these values correspond to decrementing a value
+    [SerializeField] private int RED_DEC = 0;
+    [SerializeField] private int GREEN_DEC = 0;
+    [SerializeField] private int BLUE_DEC = 0;
+    [SerializeField] private int HUE_DEC = 0;
+    [SerializeField] private int ATTACK_DEC = 0;
+    [SerializeField] private int DECAY_DEC = 0;
+    [SerializeField] private int SUSTAIN_DEC = 0;
+    [SerializeField] private int RELEASE_DEC = 0;
 
 
     /// <summary>
-    /// Numbers corresponding to pad button presses.
+    /// Numbers corresponding to pad button presses, these probably shouldn't change.
     /// </summary>
     private const int NOTE_0 = 0;
     private const int NOTE_1 = 1;
@@ -116,18 +153,20 @@ public class MidiOrchestrator : UdonSharpBehaviour
     /// Magic Numbers
     /// </summary>
     private const float CC_MAX = 127.0f;
+    private const float MAX_COLOR_VALUE = 1.0f;
+    private const float MIN_COLOR_VALUE = 0.0f;
 
     /// <summary>
     /// Event that is triggered when the script is intialized. Some intial variables are calculated and set once, then sychronized across relevant UdonBehaviors
     /// </summary>
     void Start()
     {
-        _sendRate_s = (float)sendRate;
-        _sendRate_Hz = 1.0f / _sendRate_s;
+        _updateRate_s = (float)updateRate;
+        _updateRate_Hz = 1.0f / _updateRate_s;
         foreach (UdonSharpBehaviour buttonEvent in buttonEvents)
         {
-            buttonEvent.SetProgramVariable("_sendRate_s", _sendRate_s);
-            buttonEvent.SetProgramVariable("_sendRate_Hz", _sendRate_Hz);
+            buttonEvent.SetProgramVariable("_updateRate_s", _updateRate_s);
+            buttonEvent.SetProgramVariable("_updateRate_Hz", _updateRate_Hz);
         }
         RequestSerialization();
     }
@@ -140,12 +179,12 @@ public class MidiOrchestrator : UdonSharpBehaviour
         {
             buttonEvent.SetProgramVariable("_color", _color);
             buttonEvent.SetProgramVariable("_attack", _attack);
-            buttonEvent.SetProgramVariable("_delay", _delay);
+            buttonEvent.SetProgramVariable("_decay", _decay);
             buttonEvent.SetProgramVariable("_sustain", _sustain);
             buttonEvent.SetProgramVariable("_release", _release);
-
         }
     }
+
     /// <summary>
     /// This event triggers when sync data has been transformed from bytes back into usable variables. 
     /// It does not tell you which data has been updated, but serves as a jumping-off point to either update everything that watches synced variables, or a place to check new data against old data and make specific updates
@@ -168,7 +207,7 @@ public class MidiOrchestrator : UdonSharpBehaviour
             {
                 buttonEvent.SetProgramVariable("_color", _color);
                 buttonEvent.SetProgramVariable("_attack", _attack);
-                buttonEvent.SetProgramVariable("_delay", _delay);
+                buttonEvent.SetProgramVariable("_decay", _decay);
                 buttonEvent.SetProgramVariable("_sustain", _sustain);
                 buttonEvent.SetProgramVariable("_release", _release);
             }
@@ -206,66 +245,128 @@ public class MidiOrchestrator : UdonSharpBehaviour
         if (!Networking.IsOwner(gameObject))
             Networking.SetOwner(Networking.LocalPlayer, gameObject);
 
+
         if (!IsValidNote(number))
             return;
 
         _noteValue = number - minNote;
-        // Visualizer Code should be removed eventually
-        MidiVisualizer.SetProgramVariable("_padIndex", _noteValue);
 
-        switch (_noteValue)
+        if (usesVisualizer & (number < padStop))
+            MidiVisualizer.SetProgramVariable("_padIndex", _noteValue);
+
+
+        if (velocity > 0)
         {
-            case NOTE_0:
-                buttonEvents[NOTE_0].SendCustomNetworkEvent(VRC.Udon.Common.Interfaces.NetworkEventTarget.All, "MidiOnEvent");
-                break;
-            case NOTE_1:
-                buttonEvents[NOTE_1].SendCustomNetworkEvent(VRC.Udon.Common.Interfaces.NetworkEventTarget.All, "MidiOnEvent");
-                break;
-            case NOTE_2:
-                buttonEvents[NOTE_2].SendCustomNetworkEvent(VRC.Udon.Common.Interfaces.NetworkEventTarget.All, "MidiOnEvent");
-                break;
-            case NOTE_3:
-                buttonEvents[NOTE_3].SendCustomNetworkEvent(VRC.Udon.Common.Interfaces.NetworkEventTarget.All, "MidiOnEvent");
-                break;
-            case NOTE_4:
-                buttonEvents[NOTE_4].SendCustomNetworkEvent(VRC.Udon.Common.Interfaces.NetworkEventTarget.All, "MidiOnEvent");
-                break;
-            case NOTE_5:
-                buttonEvents[NOTE_5].SendCustomNetworkEvent(VRC.Udon.Common.Interfaces.NetworkEventTarget.All, "MidiOnEvent");
-                break;
-            case NOTE_6:
-                buttonEvents[NOTE_6].SendCustomNetworkEvent(VRC.Udon.Common.Interfaces.NetworkEventTarget.All, "MidiOnEvent");
-                break;
-            case NOTE_7:
-                buttonEvents[NOTE_7].SendCustomNetworkEvent(VRC.Udon.Common.Interfaces.NetworkEventTarget.All, "MidiOnEvent");
-                break;
-            case NOTE_8:
-                buttonEvents[NOTE_8].SendCustomNetworkEvent(VRC.Udon.Common.Interfaces.NetworkEventTarget.All, "MidiOnEvent");
-                break;
-            case NOTE_9:
-                buttonEvents[NOTE_9].SendCustomNetworkEvent(VRC.Udon.Common.Interfaces.NetworkEventTarget.All, "MidiOnEvent");
-                break;
-            case NOTE_10:
-                buttonEvents[NOTE_10].SendCustomNetworkEvent(VRC.Udon.Common.Interfaces.NetworkEventTarget.All, "MidiOnEvent");
-                break;
-            case NOTE_11:
-                buttonEvents[NOTE_11].SendCustomNetworkEvent(VRC.Udon.Common.Interfaces.NetworkEventTarget.All, "MidiOnEvent");
-                break;
-            case NOTE_12:
-                buttonEvents[NOTE_12].SendCustomNetworkEvent(VRC.Udon.Common.Interfaces.NetworkEventTarget.All, "MidiOnEvent");
-                break;
-            case NOTE_13:
-                buttonEvents[NOTE_13].SendCustomNetworkEvent(VRC.Udon.Common.Interfaces.NetworkEventTarget.All, "MidiOnEvent");
-                break;
-            case NOTE_14:
-                buttonEvents[NOTE_14].SendCustomNetworkEvent(VRC.Udon.Common.Interfaces.NetworkEventTarget.All, "MidiOnEvent");
-                break;
-            case NOTE_15:
-                buttonEvents[NOTE_15].SendCustomNetworkEvent(VRC.Udon.Common.Interfaces.NetworkEventTarget.All, "MidiOnEvent");
-                break;
-            case NOTE_16:
-                buttonEvents[NOTE_16].SendCustomNetworkEvent(VRC.Udon.Common.Interfaces.NetworkEventTarget.All, "MidiOnEvent");
-                break;
+            switch (_noteValue)
+            {
+                case NOTE_0:
+                    buttonEvents[NOTE_0].SendCustomNetworkEvent(VRC.Udon.Common.Interfaces.NetworkEventTarget.All, "MidiOnEvent");
+                    break;
+                case NOTE_1:
+                    buttonEvents[NOTE_1].SendCustomNetworkEvent(VRC.Udon.Common.Interfaces.NetworkEventTarget.All, "MidiOnEvent");
+                    break;
+                case NOTE_2:
+                    buttonEvents[NOTE_2].SendCustomNetworkEvent(VRC.Udon.Common.Interfaces.NetworkEventTarget.All, "MidiOnEvent");
+                    break;
+                case NOTE_3:
+                    buttonEvents[NOTE_3].SendCustomNetworkEvent(VRC.Udon.Common.Interfaces.NetworkEventTarget.All, "MidiOnEvent");
+                    break;
+                case NOTE_4:
+                    buttonEvents[NOTE_4].SendCustomNetworkEvent(VRC.Udon.Common.Interfaces.NetworkEventTarget.All, "MidiOnEvent");
+                    break;
+                case NOTE_5:
+                    buttonEvents[NOTE_5].SendCustomNetworkEvent(VRC.Udon.Common.Interfaces.NetworkEventTarget.All, "MidiOnEvent");
+                    break;
+                case NOTE_6:
+                    buttonEvents[NOTE_6].SendCustomNetworkEvent(VRC.Udon.Common.Interfaces.NetworkEventTarget.All, "MidiOnEvent");
+                    break;
+                case NOTE_7:
+                    buttonEvents[NOTE_7].SendCustomNetworkEvent(VRC.Udon.Common.Interfaces.NetworkEventTarget.All, "MidiOnEvent");
+                    break;
+                case NOTE_8:
+                    buttonEvents[NOTE_8].SendCustomNetworkEvent(VRC.Udon.Common.Interfaces.NetworkEventTarget.All, "MidiOnEvent");
+                    break;
+                case NOTE_9:
+                    buttonEvents[NOTE_9].SendCustomNetworkEvent(VRC.Udon.Common.Interfaces.NetworkEventTarget.All, "MidiOnEvent");
+                    break;
+                case NOTE_10:
+                    buttonEvents[NOTE_10].SendCustomNetworkEvent(VRC.Udon.Common.Interfaces.NetworkEventTarget.All, "MidiOnEvent");
+                    break;
+                case NOTE_11:
+                    buttonEvents[NOTE_11].SendCustomNetworkEvent(VRC.Udon.Common.Interfaces.NetworkEventTarget.All, "MidiOnEvent");
+                    break;
+                case NOTE_12:
+                    buttonEvents[NOTE_12].SendCustomNetworkEvent(VRC.Udon.Common.Interfaces.NetworkEventTarget.All, "MidiOnEvent");
+                    break;
+                case NOTE_13:
+                    buttonEvents[NOTE_13].SendCustomNetworkEvent(VRC.Udon.Common.Interfaces.NetworkEventTarget.All, "MidiOnEvent");
+                    break;
+                case NOTE_14:
+                    buttonEvents[NOTE_14].SendCustomNetworkEvent(VRC.Udon.Common.Interfaces.NetworkEventTarget.All, "MidiOnEvent");
+                    break;
+                case NOTE_15:
+                    buttonEvents[NOTE_15].SendCustomNetworkEvent(VRC.Udon.Common.Interfaces.NetworkEventTarget.All, "MidiOnEvent");
+                    break;
+                default:
+                    if (velocity > 0) HandlePadCChange(number);
+                    break;
+            }
+        }
+        else
+        {
+            switch (_noteValue)
+            {
+                case NOTE_0:
+                    buttonEvents[NOTE_0].SendCustomNetworkEvent(VRC.Udon.Common.Interfaces.NetworkEventTarget.All, "MidiOffEvent");
+                    break;
+                case NOTE_1:
+                    buttonEvents[NOTE_1].SendCustomNetworkEvent(VRC.Udon.Common.Interfaces.NetworkEventTarget.All, "MidiOffEvent");
+                    break;
+                case NOTE_2:
+                    buttonEvents[NOTE_2].SendCustomNetworkEvent(VRC.Udon.Common.Interfaces.NetworkEventTarget.All, "MidiOffEvent");
+                    break;
+                case NOTE_3:
+                    buttonEvents[NOTE_3].SendCustomNetworkEvent(VRC.Udon.Common.Interfaces.NetworkEventTarget.All, "MidiOffEvent");
+                    break;
+                case NOTE_4:
+                    buttonEvents[NOTE_4].SendCustomNetworkEvent(VRC.Udon.Common.Interfaces.NetworkEventTarget.All, "MidiOffEvent");
+                    break;
+                case NOTE_5:
+                    buttonEvents[NOTE_5].SendCustomNetworkEvent(VRC.Udon.Common.Interfaces.NetworkEventTarget.All, "MidiOffEvent");
+                    break;
+                case NOTE_6:
+                    buttonEvents[NOTE_6].SendCustomNetworkEvent(VRC.Udon.Common.Interfaces.NetworkEventTarget.All, "MidiOffEvent");
+                    break;
+                case NOTE_7:
+                    buttonEvents[NOTE_7].SendCustomNetworkEvent(VRC.Udon.Common.Interfaces.NetworkEventTarget.All, "MidiOffEvent");
+                    break;
+                case NOTE_8:
+                    buttonEvents[NOTE_8].SendCustomNetworkEvent(VRC.Udon.Common.Interfaces.NetworkEventTarget.All, "MidiOffEvent");
+                    break;
+                case NOTE_9:
+                    buttonEvents[NOTE_9].SendCustomNetworkEvent(VRC.Udon.Common.Interfaces.NetworkEventTarget.All, "MidiOffEvent");
+                    break;
+                case NOTE_10:
+                    buttonEvents[NOTE_10].SendCustomNetworkEvent(VRC.Udon.Common.Interfaces.NetworkEventTarget.All, "MidiOffEvent");
+                    break;
+                case NOTE_11:
+                    buttonEvents[NOTE_11].SendCustomNetworkEvent(VRC.Udon.Common.Interfaces.NetworkEventTarget.All, "MidiOffEvent");
+                    break;
+                case NOTE_12:
+                    buttonEvents[NOTE_12].SendCustomNetworkEvent(VRC.Udon.Common.Interfaces.NetworkEventTarget.All, "MidiOffEvent");
+                    break;
+                case NOTE_13:
+                    buttonEvents[NOTE_13].SendCustomNetworkEvent(VRC.Udon.Common.Interfaces.NetworkEventTarget.All, "MidiOffEvent");
+                    break;
+                case NOTE_14:
+                    buttonEvents[NOTE_14].SendCustomNetworkEvent(VRC.Udon.Common.Interfaces.NetworkEventTarget.All, "MidiOffEvent");
+                    break;
+                case NOTE_15:
+                    buttonEvents[NOTE_15].SendCustomNetworkEvent(VRC.Udon.Common.Interfaces.NetworkEventTarget.All, "MidiOffEvent");
+                    break;
+                default:
+                    break;
+            }
         }
     }
 
@@ -285,8 +386,9 @@ public class MidiOrchestrator : UdonSharpBehaviour
             return;
 
         _noteValue = number - minNote;
-        // Visualizer Code should be removed eventually
-        MidiVisualizer.SetProgramVariable("_padIndex", _noteValue);
+
+        if (usesVisualizer & number < padStop)
+            MidiVisualizer.SetProgramVariable("_padIndex", _noteValue);
 
         switch (_noteValue)
         {
@@ -338,8 +440,7 @@ public class MidiOrchestrator : UdonSharpBehaviour
             case NOTE_15:
                 buttonEvents[NOTE_15].SendCustomNetworkEvent(VRC.Udon.Common.Interfaces.NetworkEventTarget.All, "MidiOffEvent");
                 break;
-            case NOTE_16:
-                buttonEvents[NOTE_16].SendCustomNetworkEvent(VRC.Udon.Common.Interfaces.NetworkEventTarget.All, "MidiOffEvent");
+            default:
                 break;
         }
 
@@ -349,6 +450,7 @@ public class MidiOrchestrator : UdonSharpBehaviour
     /// Triggered when a control change is received. These are typically sent by knobs and sliders on your Midi device.
     /// Will normalize 'value' parameter between 0.0f - 1.0f.
     /// Manually synchronizes normalized value that is sent. 
+    /// Because the user should be able to define which CCs correspond to what, we can not use a switch statement as the values are not constant.
     /// </summary>
     /// <param name="channel">Midi Channel that received the event, 0-15.</param>
     /// <param name="number" Control number from 0-127.</param>
@@ -357,55 +459,74 @@ public class MidiOrchestrator : UdonSharpBehaviour
     {
         if (!Networking.IsOwner(gameObject))
             Networking.SetOwner(Networking.LocalPlayer, gameObject);
-        // Normalize input to be in range 0.0f - 1.0f
         float value_nrm = (float)value / CC_MAX;
-        switch (number)
+
+        if (number == RED)
         {
-            case RED:
-                _r = value_nrm;
-                _color.r = _r;
-                break;
-            case GREEN:
-                _g = value_nrm;
-                _color.g = _g;
-                break;
-            case BLUE:
-                _b = value_nrm;
-                _color.b = _b;
-                break;
-            case ALPHA:
-                _a = value_nrm;
-                _color.a = _a;
-                break;
-            case ATTACK:
-                _attack = value_nrm * maxTime;
-                break;
-            case DELAY:
-                _delay = value_nrm * maxTime;
-                break;
-            case SUSTAIN:
-                _sustain = value_nrm * maxTime;
-                break;
-            case RELEASE:
-                _release = value_nrm * maxTime;
-                break;
+            _r = value_nrm;
+            _color.r = _r;
         }
+        else if (number == GREEN)
+        {
+            _g = value_nrm;
+            _color.g = _g;
+        }
+        else if (number == BLUE)
+        {
+            _b = value_nrm;
+            _color.b = _b;
+        }
+        else if (number == HUE)
+        {
+            _h = value_nrm;
+            HandleHueShift(_h);
+        }
+        else if (number == ATTACK)
+        {
+            _attack = value_nrm * maxTime;
+        }
+        else if (number == DECAY)
+        {
+            _decay = value_nrm * maxTime;
+        }
+        else if (number == SUSTAIN)
+        {
+            _sustain = value_nrm * maxTime;
+        }
+        else if (number == RELEASE)
+        {
+            _release = value_nrm * maxTime;
+        }
+        else
+        {
+            Debug.Log("Invalid CC");
+        }
+
         foreach (UdonSharpBehaviour buttonEvent in buttonEvents)
         {
             buttonEvent.SetProgramVariable("_color", _color);
             buttonEvent.SetProgramVariable("_attack", _attack);
-            buttonEvent.SetProgramVariable("_delay", _delay);
+            buttonEvent.SetProgramVariable("_decay", _decay);
             buttonEvent.SetProgramVariable("_sustain", _sustain);
             buttonEvent.SetProgramVariable("_release", _release);
         }
-        // Visualizer Code should be removed eventually
-        MidiVisualizer.SetProgramVariable("_colorValue", _color);
-        MidiVisualizer.SetProgramVariable("_attack", _attack);
-        MidiVisualizer.SetProgramVariable("_delay", _delay);
-        MidiVisualizer.SetProgramVariable("_sustain", _sustain);
-        MidiVisualizer.SetProgramVariable("_release", _release);
+
+        if (usesVisualizer)
+        {
+            MidiVisualizer.SetProgramVariable("_colorValue", _color);
+            MidiVisualizer.SetProgramVariable("_r", _r);
+            MidiVisualizer.SetProgramVariable("_g", _g);
+            MidiVisualizer.SetProgramVariable("_b", _b);
+            MidiVisualizer.SetProgramVariable("_hueShift", _h);
+            MidiVisualizer.SetProgramVariable("_attack", _attack);
+            MidiVisualizer.SetProgramVariable("_decay", _decay);
+            MidiVisualizer.SetProgramVariable("_sustain", _sustain);
+            MidiVisualizer.SetProgramVariable("_release", _release);
+        }
+
         RequestSerialization();
     }
+
     /// <summary>
     /// Ensures that a note given is within a given range.
     /// </summary>
@@ -413,7 +534,128 @@ public class MidiOrchestrator : UdonSharpBehaviour
     /// <returns></returns>
     public bool IsValidNote(int note)
     {
-        // Ensures that note press is within a defined range
-        return note >= minNote & note <= maxNote;
+        return note >= minNote & note < maxNote;
+    }
+
+    /// <summary>
+    /// Handles CC change when the option for Pads as CC is set.
+    /// Because the user should be able to define which CCs correspond to what, we can no longer use a switch statement as the values are not constant.
+    /// </summary>
+    /// <param name="note">Note that is pressed</param>
+    public void HandlePadCChange(int note)
+    {
+        if (note == RED)
+        {
+            _r = _r >= MAX_COLOR_VALUE ? MAX_COLOR_VALUE : _r + padCCChangeAmnt;
+            _color.r = _r;
+        }
+        else if (note == RED_DEC)
+        {
+            _r = _r <= MIN_COLOR_VALUE ? MIN_COLOR_VALUE : _r - padCCChangeAmnt;
+            _color.r = _r;
+        }
+        else if (note == GREEN)
+        {
+            _g = _g >= MAX_COLOR_VALUE ? MAX_COLOR_VALUE : _g + padCCChangeAmnt;
+            _color.g = _g;
+        }
+        else if (note == GREEN_DEC)
+        {
+            _g = _g <= MIN_COLOR_VALUE ? MIN_COLOR_VALUE : _g - padCCChangeAmnt;
+            _color.g = _g;
+        }
+        else if (note == BLUE)
+        {
+            _b = _b >= MAX_COLOR_VALUE ? MAX_COLOR_VALUE : _b + padCCChangeAmnt;
+            _color.b = _b;
+        }
+        else if (note == BLUE_DEC)
+        {
+            _b = _b <= MIN_COLOR_VALUE ? MIN_COLOR_VALUE : _b - padCCChangeAmnt;
+            _color.b = _b;
+        }
+        else if (note == HUE)
+        {
+            _h = _h >= MAX_COLOR_VALUE ? MAX_COLOR_VALUE : _h + padCCChangeAmnt;
+            HandleHueShift(_h);
+        }
+        else if (note == HUE_DEC)
+        {
+            _h = _h <= MIN_COLOR_VALUE ? MIN_COLOR_VALUE : _h - padCCChangeAmnt;
+            HandleHueShift(_h);
+        }
+        else if (note == ATTACK)
+        {
+            _attack = _attack >= maxTime ? maxTime : (_attack + padCCChangeAmnt) * maxTime;
+        }
+        else if (note == ATTACK_DEC)
+        {
+            _attack = _attack <= 0.0f ? 0.0f : (_attack - padCCChangeAmnt) * maxTime;
+        }
+        else if (note == DECAY)
+        {
+            _decay = _decay >= maxTime ? maxTime : (_decay + padCCChangeAmnt) * maxTime;
+        }
+        else if (note == DECAY_DEC)
+        {
+            _decay = _decay <= 0.0f ? 0.0f : (_decay - padCCChangeAmnt) * maxTime;
+        }
+        else if (note == SUSTAIN)
+        {
+            _sustain = _sustain >= maxTime ? maxTime : (_sustain + padCCChangeAmnt) * maxTime;
+        }
+        else if (note == SUSTAIN_DEC)
+        {
+            _sustain = _sustain <= 0.0f ? 0.0f : (_sustain - padCCChangeAmnt) * maxTime;
+        }
+        else if (note == RELEASE)
+        {
+            _release = _release >= maxTime ? maxTime : (_release + padCCChangeAmnt) * maxTime;
+        }
+        else if (note == RELEASE_DEC)
+        {
+            _release = _release <= 0.0f ? 0.0f : (_release - padCCChangeAmnt) * maxTime;
+        }
+        else
+        {
+            Debug.Log("Invalid Pad");
+        }
+
+        foreach (UdonSharpBehaviour buttonEvent in buttonEvents)
+        {
+            buttonEvent.SetProgramVariable("_color", _color);
+            buttonEvent.SetProgramVariable("_attack", _attack);
+            buttonEvent.SetProgramVariable("_decay", _decay);
+            buttonEvent.SetProgramVariable("_sustain", _sustain);
+            buttonEvent.SetProgramVariable("_release", _release);
+        }
+
+        if (usesVisualizer)
+        {
+            MidiVisualizer.SetProgramVariable("_colorValue", _color);
+            MidiVisualizer.SetProgramVariable("_r", _r);
+            MidiVisualizer.SetProgramVariable("_g", _g);
+            MidiVisualizer.SetProgramVariable("_b", _b);
+            MidiVisualizer.SetProgramVariable("_hueShift", _h);
+            MidiVisualizer.SetProgramVariable("_attack", _attack);
+            MidiVisualizer.SetProgramVariable("_decay", _decay);
+            MidiVisualizer.SetProgramVariable("_sustain", _sustain);
+            MidiVisualizer.SetProgramVariable("_release", _release);
+        }
+
+        RequestSerialization();
+    }
+    /// <summary>
+    /// To avoid modifying the current color, we create a new color from the knob values and hue shift that.
+    /// </summary>
+    /// <param name="hueShiftAmnt">Amount to shift currrent R, G, B values</param>
+    public void HandleHueShift(float hueShiftAmnt)
+    {
+        float H, S, V;
+        Color.RGBToHSV(new Color(_r, _g, _b, MAX_COLOR_VALUE), out H, out S, out V);
+        float _colorChange = (float)Math.Round((double)(H + (MAX_COLOR_VALUE - hueShiftAmnt)), 2);
+        if (_colorChange > MAX_COLOR_VALUE)
+            _colorChange -= MAX_COLOR_VALUE;
+        _color = Color.HSVToRGB(_colorChange, S, V);
     }
 }
