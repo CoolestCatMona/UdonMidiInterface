@@ -21,16 +21,19 @@ public class MidiBehavior : UdonSharpBehaviour
     /// </summary>
     [HideInInspector] public Color _color = Color.black;
     [HideInInspector] public float _attack = 1.0f;
-    [HideInInspector] public float _delay = 1.0f;
+    [HideInInspector] public float _decay = 1.0f;
     [HideInInspector] public float _sustain = 1.0f;
     [HideInInspector] public float _release = 1.0f;
-    [HideInInspector] public float _sendRate_s = 1.0f;
-    [HideInInspector] public float _sendRate_Hz = 1.0f;
+    [HideInInspector] public float _updateRate_s = 1.0f;
+    [HideInInspector] public float _updateRate_Hz = 1.0f;
+    // Not Currently Implemented
+    [HideInInspector] public bool _usesLTCGI = false;
+    [HideInInspector] public bool _usesAreaLit = false;
 
 
     private Vector4 _targetColorVec4;
-
     private Color _updatedColor;
+    private Color _initialColor = Color.black;
     private Color _currentColor = Color.black;
 
     private Renderer[] _childRenderers;
@@ -101,7 +104,7 @@ public class MidiBehavior : UdonSharpBehaviour
     {
         _onEventLock = true;
         _targetColorVec4 = new Vector4(_color.r, _color.g, _color.b, _color.a);
-        _rgba_step = new Vector4(LerpStepSize(_currentColor.r, _color.r, _attack), LerpStepSize(_currentColor.g, _color.g, _attack), LerpStepSize(_currentColor.b, _color.b, _attack), LerpStepSize(_currentColor.a, _color.a, _attack));
+        _rgba_step = new Vector4(LerpStepSize(_initialColor.r, _color.r, _attack), LerpStepSize(_initialColor.g, _color.g, _attack), LerpStepSize(_initialColor.b, _color.b, _attack), LerpStepSize(_initialColor.a, _color.a, _attack));
         if (_isArray)
         {
             UpdateArray();
@@ -116,13 +119,13 @@ public class MidiBehavior : UdonSharpBehaviour
     /// Calculates linearly interpolated step size for reaching Color(0,0,0,0) from synchronized _color value
     /// Recursively increases the material's color values by the calculated step size at some update rate until the target color is reached.
     /// This event will wait to fire so long as an ON event is executing
-    /// TODO: Currently does MAX -> 0 in _release, SHOULD do MAX -> Sustain in _delay, then do Sustain -> 0 in _release
+    /// TODO: Currently does MAX -> 0 in _release, SHOULD do MAX -> Sustain in _decay, then do Sustain -> 0 in _release
     /// </summary>
     public void MidiOffEvent()
     {
         if (_onEventLock)
         {
-            SendCustomEventDelayedSeconds(nameof(MidiOffEvent), _sendRate_Hz);
+            SendCustomEventDelayedSeconds(nameof(MidiOffEvent), _updateRate_Hz);
         }
         else
         {
@@ -157,8 +160,7 @@ public class MidiBehavior : UdonSharpBehaviour
         var block = new MaterialPropertyBlock();
         _Renderer.GetPropertyBlock(block);
         _currentColor = block.GetColor(_Color);
-        _currentColor = EnsureColorWithinBounds(_currentColor);
-        Vector4 _currentColorVec4 = new Vector4((float)Math.Round((double)_currentColor.r, 3), (float)Math.Round((double)_currentColor.g, 3), (float)Math.Round((double)_currentColor.b, 3), (float)Math.Round((double)_currentColor.a, 3));
+        Vector4 _currentColorVec4 = new Vector4(_currentColor.r, _currentColor.g, _currentColor.b, _currentColor.a);
 
         // Checks to see if the current material is roughly equivalent to the target material
         // If they are roughtly equal, set current material to target material (avoids floating point inconsistencies) and release any locks
@@ -168,18 +170,41 @@ public class MidiBehavior : UdonSharpBehaviour
             block.SetColor(_EmissionColor, _targetColor);
             block.SetColor(_Color, _targetColor);
             _Renderer.SetPropertyBlock(block);
-            _currentColor = block.GetColor(_Color);
+            _initialColor = block.GetColor(_Color);
             _onEventLock = false;
             _offEventLock = false;
         }
         // Otherwise, update the current material by the calculated rgba step size
         else
         {
-            _updatedColor = new Color(_currentColorVec4.x + _rgba_step.x, _currentColorVec4.y + _rgba_step.y, _currentColorVec4.z + _rgba_step.z, _currentColorVec4.w + _rgba_step.w);
+            Vector4 _updatedColorVec4 = new Vector4(_currentColorVec4.x, _currentColorVec4.y, _currentColorVec4.z, _currentColorVec4.w);
+
+            // Handle overshooting in either direction
+            if ((_currentColorVec4.x <= _targetColorVec4.x & _rgba_step.x <= 0) | (_currentColorVec4.x >= _targetColorVec4.x & _rgba_step.x >= 0))
+                _updatedColorVec4.x = _targetColorVec4.x;
+            else
+                _updatedColorVec4.x = _currentColorVec4.x + _rgba_step.x;
+
+            if ((_currentColorVec4.y <= _targetColorVec4.y & _rgba_step.y <= 0) | (_currentColorVec4.y >= _targetColorVec4.y & _rgba_step.y >= 0))
+                _updatedColorVec4.y = _targetColorVec4.y;
+            else
+                _updatedColorVec4.y = _currentColorVec4.y + _rgba_step.y;
+
+            if ((_currentColorVec4.z <= _targetColorVec4.z & _rgba_step.z <= 0) | (_currentColorVec4.z >= _targetColorVec4.z & _rgba_step.z >= 0))
+                _updatedColorVec4.z = _targetColorVec4.z;
+            else
+                _updatedColorVec4.z = _currentColorVec4.z + _rgba_step.z;
+
+            if ((_currentColorVec4.w <= _targetColorVec4.w & _rgba_step.w <= 0) | (_currentColorVec4.w >= _targetColorVec4.w & _rgba_step.w >= 0))
+                _updatedColorVec4.w = _targetColorVec4.w;
+            else
+                _updatedColorVec4.w = _currentColorVec4.w + _rgba_step.w;
+
+            _updatedColor = EnsureColorWithinBounds(new Color(_updatedColorVec4.x, _updatedColorVec4.y, _updatedColorVec4.z, _updatedColorVec4.w));
             block.SetColor(_EmissionColor, _updatedColor);
             block.SetColor(_Color, _updatedColor);
             _Renderer.SetPropertyBlock(block);
-            SendCustomEventDelayedSeconds(nameof(UpdateSingle), _sendRate_Hz);
+            SendCustomEventDelayedSeconds(nameof(UpdateSingle), _updateRate_Hz);
         }
     }
 
@@ -206,7 +231,6 @@ public class MidiBehavior : UdonSharpBehaviour
             var block = new MaterialPropertyBlock();
             renderer.GetPropertyBlock(block);
             _currentColor = block.GetColor(_Color);
-            _currentColor = EnsureColorWithinBounds(_currentColor);
             Vector4 _currentColorVec4 = new Vector4((float)Math.Round((double)_currentColor.r, 3), (float)Math.Round((double)_currentColor.g, 3), (float)Math.Round((double)_currentColor.b, 3), (float)Math.Round((double)_currentColor.a, 3));
 
             // Do not update each renderer at the same time, updates should be offset by at least one iteration
@@ -228,13 +252,38 @@ public class MidiBehavior : UdonSharpBehaviour
                     _onEventLock = false;
                     _offEventLock = false;
                     _iteration = 0;
+                    _initialColor = block.GetColor(_Color);
                     return;
                 }
             }
             // Otherwise, update the current material by the calculated rgba step size
             else
             {
-                _updatedColor = new Color(_currentColorVec4.x + _rgba_step.x, _currentColorVec4.y + _rgba_step.y, _currentColorVec4.z + _rgba_step.z, _currentColorVec4.w + _rgba_step.w);
+                Vector4 _updatedColorVec4 = new Vector4(_currentColorVec4.x, _currentColorVec4.y, _currentColorVec4.z, _currentColorVec4.w);
+
+                // Handle overshooting in either direction
+                if ((_currentColorVec4.x <= _targetColorVec4.x & _rgba_step.x <= 0) | (_currentColorVec4.x >= _targetColorVec4.x & _rgba_step.x >= 0))
+                    _updatedColorVec4.x = _targetColorVec4.x;
+                else
+                    _updatedColorVec4.x = _currentColorVec4.x + _rgba_step.x;
+
+                if ((_currentColorVec4.y <= _targetColorVec4.y & _rgba_step.y <= 0) | (_currentColorVec4.y >= _targetColorVec4.y & _rgba_step.y >= 0))
+                    _updatedColorVec4.y = _targetColorVec4.y;
+                else
+                    _updatedColorVec4.y = _currentColorVec4.y + _rgba_step.y;
+
+                if ((_currentColorVec4.z <= _targetColorVec4.z & _rgba_step.z <= 0) | (_currentColorVec4.z >= _targetColorVec4.z & _rgba_step.z >= 0))
+                    _updatedColorVec4.z = _targetColorVec4.z;
+                else
+                    _updatedColorVec4.z = _currentColorVec4.z + _rgba_step.z;
+
+                if ((_currentColorVec4.w <= _targetColorVec4.w & _rgba_step.w <= 0) | (_currentColorVec4.w >= _targetColorVec4.w & _rgba_step.w >= 0))
+                    _updatedColorVec4.w = _targetColorVec4.w;
+                else
+                    _updatedColorVec4.w = _currentColorVec4.w + _rgba_step.w;
+
+                _updatedColor = EnsureColorWithinBounds(new Color(_updatedColorVec4.x, _updatedColorVec4.y, _updatedColorVec4.z, _updatedColorVec4.w));
+
                 block.SetColor(_EmissionColor, _updatedColor);
                 block.SetColor(_Color, _updatedColor);
                 renderer.SetPropertyBlock(block);
@@ -242,7 +291,7 @@ public class MidiBehavior : UdonSharpBehaviour
         }
         // After each renderer has been updated, increase iteration and recurse
         _iteration++;
-        SendCustomEventDelayedSeconds(nameof(UpdateArray), _sendRate_Hz);
+        SendCustomEventDelayedSeconds(nameof(UpdateArray), _updateRate_Hz);
     }
 
     /// <summary>
@@ -266,7 +315,6 @@ public class MidiBehavior : UdonSharpBehaviour
     /// <param name="stopValue">Stopping value</param>
     /// <param name="time">Amount of time (s) to reach stopValue from startValue assuming some update rate</param>
     /// <returns></returns>
-    /// TODO: There is currently an issue with changing the color value to a non 0/1 value while an update is
     public float LerpStepSize(float startValue, float stopValue, float time)
     {
         // Debug.Log("Start Value: " + startValue + " Stop Value: " + stopValue + " Time: " + time);
@@ -304,12 +352,13 @@ public class MidiBehavior : UdonSharpBehaviour
         }
 
         float interpoloatedValue;
-        interpoloatedValue = startValue + _sendRate_Hz * ((stopValue - startValue) / (time));
+        interpoloatedValue = startValue + _updateRate_Hz * ((stopValue - startValue) / (time));
         interpoloatedValue = Math.Abs(interpoloatedValue - startValue);
         float _stepSize = interpoloatedValue * slope;
 
         // Should NEVER increase or decrease more than the actual difference between the two values in a single step
-        return Mathf.Clamp((float)Math.Round((double)(_stepSize * scalar), 3), -1 * Math.Abs(stopValue - startValue), Math.Abs(stopValue - startValue));
+        _stepSize = Mathf.Clamp((float)Math.Round((double)(_stepSize * scalar), 2), -1 * Math.Abs(stopValue - startValue), Math.Abs(stopValue - startValue));
+        return _stepSize;
     }
     /// <summary>
     /// Compares two Vec4 for equality with finer control than the normal '==' functionality

@@ -22,10 +22,14 @@ public class MidiValueVisualizer : UdonSharpBehaviour
     /// Synchronized variables that are set via the MidiOrchestrator behavior.
     /// </summary>
     [HideInInspector, FieldChangeCallback(nameof(ColorValue))] public Color _colorValue = Color.black;
+    [HideInInspector, FieldChangeCallback(nameof(Red))] public float _r = 1.0f;
+    [HideInInspector, FieldChangeCallback(nameof(Green))] public float _g = 1.0f;
+    [HideInInspector, FieldChangeCallback(nameof(Blue))] public float _b = 1.0f;
     [HideInInspector, FieldChangeCallback(nameof(Attack))] public float _attack = 1.0f;
-    [HideInInspector, FieldChangeCallback(nameof(Delay))] public float _delay = 1.0f;
+    [HideInInspector, FieldChangeCallback(nameof(Delay))] public float _decay = 1.0f;
     [HideInInspector, FieldChangeCallback(nameof(Sustain))] public float _sustain = 1.0f;
     [HideInInspector, FieldChangeCallback(nameof(Release))] public float _release = 1.0f;
+    [HideInInspector, FieldChangeCallback(nameof(HueShift))] public float _hueShift = 0.0f;
     [HideInInspector] public float _sendRate_s = 1.0f;
     [HideInInspector] public float _sendRate_Hz = 1.0f;
     public GameObject previewObject;
@@ -37,7 +41,7 @@ public class MidiValueVisualizer : UdonSharpBehaviour
     public Text hText;
     public Text attackText;
     public Text sustainText;
-    public Text delayText;
+    public Text decayText;
     public Text releaseText;
 
     // Private Variables
@@ -55,7 +59,7 @@ public class MidiValueVisualizer : UdonSharpBehaviour
     {
         InitIDs();
         attackText.text = "1.000";
-        delayText.text = "1.000";
+        decayText.text = "1.000";
         sustainText.text = "1.000";
         releaseText.text = "1.000";
     }
@@ -64,15 +68,48 @@ public class MidiValueVisualizer : UdonSharpBehaviour
         set
         {
             _colorValue = value;
-            rText.text = _colorValue.r.ToString("0.000");
-            gText.text = _colorValue.g.ToString("0.000");
-            bText.text = _colorValue.b.ToString("0.000");
             Renderer _Renderer = previewObject.GetComponent<Renderer>();
             var block = new MaterialPropertyBlock();
             block.SetColor(_Color, _colorValue);
             _Renderer.SetPropertyBlock(block);
         }
         get => _colorValue;
+    }
+    public float Red
+    {
+        set
+        {
+            _r = value;
+            rText.text = _r.ToString("0.000");
+        }
+        get => _r;
+    }
+    public float Green
+    {
+        set
+        {
+            _g = value;
+            gText.text = _g.ToString("0.000");
+        }
+        get => _g;
+    }
+    public float Blue
+    {
+        set
+        {
+            _b = value;
+            bText.text = _b.ToString("0.000");
+        }
+        get => _b;
+    }
+    public float HueShift
+    {
+        set
+        {
+            _hueShift = value;
+            hText.text = _hueShift.ToString("0.000");
+        }
+        get => _hueShift;
     }
     public float Attack
     {
@@ -87,10 +124,10 @@ public class MidiValueVisualizer : UdonSharpBehaviour
     {
         set
         {
-            _delay = value;
-            delayText.text = _delay.ToString("0.000");
+            _decay = value;
+            decayText.text = _decay.ToString("0.000");
         }
-        get => _delay;
+        get => _decay;
     }
     public float Sustain
     {
