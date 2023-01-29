@@ -30,6 +30,7 @@ public class MidiValueVisualizer : UdonSharpBehaviour
     [HideInInspector, FieldChangeCallback(nameof(Sustain))] public float _sustain = 1.0f;
     [HideInInspector, FieldChangeCallback(nameof(Release))] public float _release = 1.0f;
     [HideInInspector, FieldChangeCallback(nameof(HueShift))] public float _hueShift = 0.0f;
+    [HideInInspector, FieldChangeCallback(nameof(IntensityMult))] public float _intensityMult = 0.0f;
     [HideInInspector] public float _sendRate_s = 1.0f;
     [HideInInspector] public float _sendRate_Hz = 1.0f;
     public GameObject previewObject;
@@ -43,6 +44,7 @@ public class MidiValueVisualizer : UdonSharpBehaviour
     public Text sustainText;
     public Text decayText;
     public Text releaseText;
+    public Text intensityText;
 
     // Private Variables
     [HideInInspector, FieldChangeCallback(nameof(PadIndex))] public int _padIndex = -1;
@@ -146,6 +148,15 @@ public class MidiValueVisualizer : UdonSharpBehaviour
             releaseText.text = _release.ToString("0.000");
         }
         get => _release;
+    }
+    public float IntensityMult
+    {
+        set
+        {
+            _intensityMult = value;
+            intensityText.text = _intensityMult.ToString("0.000");
+        }
+        get => _intensityMult;
     }
     public int PadIndex
     {

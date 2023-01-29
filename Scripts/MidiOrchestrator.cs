@@ -106,6 +106,12 @@ public class MidiOrchestrator : UdonSharpBehaviour
     private float _release = 1.0f;
 
     /// <summary>
+    /// Intensity multiplier for materials. Material property will be multiplied by 2^intensityMult value
+    /// </summary>
+    [UdonSynced]
+    private float _intensityMult = 0.0f;
+
+    /// <summary>
     /// Numbers corresponding to CC on a MIDI controller.
     /// </summary>
     [SerializeField] private int RED = 10;
@@ -116,6 +122,7 @@ public class MidiOrchestrator : UdonSharpBehaviour
     [SerializeField] private int DECAY = 18;
     [SerializeField] private int SUSTAIN = 19;
     [SerializeField] private int RELEASE = 16;
+    [SerializeField] private int INTENSITYMULT = -1;
 
     // When using pads, these values correspond to decrementing a value
     [SerializeField] private int RED_DEC = 0;
@@ -126,6 +133,7 @@ public class MidiOrchestrator : UdonSharpBehaviour
     [SerializeField] private int DECAY_DEC = 0;
     [SerializeField] private int SUSTAIN_DEC = 0;
     [SerializeField] private int RELEASE_DEC = 0;
+    [SerializeField] private int INTENSITYMULT_DEC = -1;
 
 
     /// <summary>
@@ -167,6 +175,8 @@ public class MidiOrchestrator : UdonSharpBehaviour
         {
             buttonEvent.SetProgramVariable("_updateRate_s", _updateRate_s);
             buttonEvent.SetProgramVariable("_updateRate_Hz", _updateRate_Hz);
+            buttonEvent.SetProgramVariable("usesAreaLit", _usesAreaLit);
+            buttonEvent.SetProgramVariable("usesLTCGI", _usesLTCGI);
         }
         RequestSerialization();
     }

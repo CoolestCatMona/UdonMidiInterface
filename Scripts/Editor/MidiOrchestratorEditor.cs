@@ -332,17 +332,27 @@ public class MidiOrchestratorEditor : Editor
         switch (_thirdPartySelectionIndex)
         {
             case CUSTOM_CONTROLLER:
+                var useAreaLit = serializedObject.FindProperty("usesAreaLit");
+                var useLTCGI = serializedObject.FindProperty("usesLTCGI");
+                useAreaLit.boolValue = false;
+                useLTCGI.boolValue = false;
                 break;
             case 1:
                 EditorGUILayout.HelpBox("Eventual Hook-ins for LTCGI Here", MessageType.Info, true);
+                var useLTCGI = serializedObject.FindProperty("usesAreaLit");
+                useLTCGI.boolValue = true;
                 break;
             case 2:
                 EditorGUILayout.HelpBox("Eventual Hook-ins for Area Lit Here", MessageType.Info, true);
+                var useAreaLit = serializedObject.FindProperty("usesAreaLit");
+                useAreaLit.boolValue = true;
+                EditorGUILayout.PropertyField(serializedObject.FindProperty("sustainLevel"),new GUIContent("Sustain Level", "Intensity of material to Sustain for the amount of time defined by the sustain CC"),  true);
                 break;
             default:
                 Debug.LogError("Unrecognized Option");
                 break;
-        }  
+        }
+        serializedObject.ApplyModifiedProperties();  
     }
 }
 #endif
