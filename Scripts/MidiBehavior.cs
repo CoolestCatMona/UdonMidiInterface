@@ -58,6 +58,7 @@ public class MidiBehavior : UdonSharpBehaviour
     // PropertyIDs
     private int _EmissionColor;
     private int _Color;
+    private int _LightColor;
 
     // Magic Numbers
     private float MAX_COLOR_VALUE = 1.0f;
@@ -70,7 +71,7 @@ public class MidiBehavior : UdonSharpBehaviour
     {
         _EmissionColor = PropertyToID("_EmissionColor");
         _Color = PropertyToID("_Color");
-        // _LightColor = PropertyToID("_LightColor");
+        _LightColor = PropertyToID("_LightColor");
     }
     /// <summary>
     /// Initializes some values on start, determines if attached object has children (is an Array of objects)
@@ -114,6 +115,7 @@ public class MidiBehavior : UdonSharpBehaviour
             }
         }
     }
+
     /// <summary>
     /// Calculates linearly interpolated step size for reaching synchronized _color value from some starting color
     /// Recursively increases the material's color values by the calculated step size at some update rate until the target color is reached.
@@ -122,11 +124,11 @@ public class MidiBehavior : UdonSharpBehaviour
     public void MidiOnEvent()
     {
         _onEventLock = true;
-        _targetColorVec4 = new Vector4(_color.r, _color.g, _color.b, _color.a);
+        _targetColorVec4 = new Vector4(_color.r, _color.g, _color.b, 1.0f);
         _rgba_step = new Vector4(LerpStepSize(_initialColor.r, _color.r, _attack),
                                  LerpStepSize(_initialColor.g, _color.g, _attack),
                                  LerpStepSize(_initialColor.b, _color.b, _attack),
-                                 LerpStepSize(_initialColor.a, _color.a, _attack));
+                                 LerpStepSize(_initialColor.a, 1.0f, _attack));
         targetIntensity = (float)Math.Pow(2.0, (double)_intensityMult);
 
         if (_isArray)
@@ -186,7 +188,7 @@ public class MidiBehavior : UdonSharpBehaviour
         _currentColor = block.GetColor(_Color);
         Vector4 _currentColorVec4 = new Vector4(_currentColor.r, _currentColor.g, _currentColor.b, _currentColor.a);
 
-        if (RoughlyEquivalent(_currentColorVec4, _targetColorVec4))
+        if (Vec4AlmostEquals(_currentColorVec4, _targetColorVec4))
         {
             Color _targetColor = new Color(_targetColorVec4.x, _targetColorVec4.y, _targetColorVec4.z, _targetColorVec4.w);
 
@@ -194,9 +196,11 @@ public class MidiBehavior : UdonSharpBehaviour
             _UpdateAreaLit(_usesAreaLit, _AreaLitRenderer, _targetColor, targetIntensity);
 
             _initialColor = block.GetColor(_Color);
+
             _onEventLock = false;
             _offEventLock = false;
         }
+
         else
         {
             _updatedColor = _UpdateColor(_currentColorVec4, _targetColorVec4, _rgba_step);
@@ -205,6 +209,7 @@ public class MidiBehavior : UdonSharpBehaviour
 
             SendCustomEventDelayedSeconds(nameof(UpdateSingle), _updateRate_Hz);
         }
+
     }
 
     /// <summary>
@@ -220,10 +225,8 @@ public class MidiBehavior : UdonSharpBehaviour
             _targetColorVec4 = new Vector4(_color.r, _color.g, _color.b, _color.a);
             _rgba_step = new Vector4(LerpStepSize(_currentColor.r, _color.r, _attack), LerpStepSize(_currentColor.g, _color.g, _attack), LerpStepSize(_currentColor.b, _color.b, _attack), LerpStepSize(_currentColor.a, _color.a, _attack));
         }
-        // Iterate through each child renderer in the GameObject array
         for (int i = 0; i < _childRenderers.Length; i++)
         {
-            // Get current renderer's MaterialPropertyBlock and ensures the color is within some defined bounds
             var block = new MaterialPropertyBlock();
             _childRenderers[i].GetPropertyBlock(block);
             _currentColor = block.GetColor(_Color);
@@ -234,16 +237,11 @@ public class MidiBehavior : UdonSharpBehaviour
             {
                 continue;
             }
-            // Checks to see if the current color is roughly equivalent to the target color
-            // If they are roughtly equal, set current material to target material (avoids floating point inconsistencies)
-            // If this is the final element in the array, release any locks, reset iteration, and exit
-            if (RoughlyEquivalent(_currentColorVec4, _targetColorVec4))
+            if (Vec4AlmostEquals(_currentColorVec4, _targetColorVec4))
             {
                 Color _targetColor = new Color(_targetColorVec4.x, _targetColorVec4.y, _targetColorVec4.z, _targetColorVec4.w);
-                // Area lit needs its own field for area lit meshes
                 _UpdateRendererMaterialProperties(_childRenderers[i], block, _targetColor);
                 _UpdateAreaLit(_usesAreaLit, _AreaLitChildRenderers[i], _targetColor, targetIntensity);
-
 
                 if (i == _numChildren - 1)
                 {
@@ -254,7 +252,6 @@ public class MidiBehavior : UdonSharpBehaviour
                     return;
                 }
             }
-            // Otherwise, update the current material by the calculated rgba step size
             else
             {
                 _updatedColor = _UpdateColor(_currentColorVec4, _targetColorVec4, _rgba_step);
@@ -352,30 +349,16 @@ public class MidiBehavior : UdonSharpBehaviour
         _stepSize = Mathf.Clamp((float)Math.Round((double)(_stepSize * scalar), 2), -1 * Math.Abs(stopValue - startValue), Math.Abs(stopValue - startValue));
         return _stepSize;
     }
+
     /// <summary>
     /// Compares two Vec4 for equality with finer control than the normal '==' functionality
     /// </summary>
     /// <param name="v1">First vector</param>
     /// <param name="v2">Second vector</param>
     /// <returns></returns>
-    public bool RoughlyEquivalent(Vector4 v1, Vector4 v2)
+    public bool Vec4AlmostEquals(Vector4 v1, Vector4 v2)
     {
-        // TODO: Should be able to handle >, >=, <, <= or !=
-        // switch (pred)
-        // {
-        //     case "gt":
-        //         break;
-        //     case "lt":
-        //         break;
-        //     case "gte":
-        //         break;
-        //     case "lte":
-        //         break;
-        //     case "eq":
-        //         break;
-        //     case "neq":
-        //         break;
-        // }
+
         return (AlmostEquals(v1.x, v2.x) & AlmostEquals(v1.y, v2.y) & AlmostEquals(v1.z, v2.z) & AlmostEquals(v1.w, v2.w));
     }
 
@@ -392,12 +375,19 @@ public class MidiBehavior : UdonSharpBehaviour
         return (Math.Abs(float1 - float2) <= epsilon);
     }
 
+    /// <summary>
+    /// Updates an AreaLit renderer by modifying the _LightColor property on the AreaLit shader.
+    /// </summary>
+    /// <param name="useAreaLit">Boolean ot dictacte if arealit is being used</param>
+    /// <param name="areaLitRenderer">Renderer for AreaLit</param>
+    /// <param name="col">Color to update to</param>
+    /// <param name="intensity">Intensity multiplier for AreaLit</param>
     private void _UpdateAreaLit(bool useAreaLit, Renderer areaLitRenderer, Color col, float intensity)
     {
         if (useAreaLit)
         {
             var areaLitBlock = new MaterialPropertyBlock();
-            areaLitBlock.SetColor("_LightColor", new Color(col.r * intensity,
+            areaLitBlock.SetColor(_LightColor, new Color(col.r * intensity,
                                                            col.g * intensity,
                                                            col.b * intensity,
                                                            col.a * intensity));
@@ -405,6 +395,12 @@ public class MidiBehavior : UdonSharpBehaviour
         }
     }
 
+    /// <summary>
+    /// Updates a Renderer's material properties by setting relevant properties on a property block.
+    /// </summary>
+    /// <param name="renderer">Renderer to update</param>
+    /// <param name="block">Material Property Block</param>
+    /// <param name="col">Color to update to</param>
     private void _UpdateRendererMaterialProperties(Renderer renderer, MaterialPropertyBlock block, Color col)
     {
         block.SetColor(_EmissionColor, col);

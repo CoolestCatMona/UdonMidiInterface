@@ -67,7 +67,7 @@ public class MidiOrchestrator : UdonSharpBehaviour
     /// Because I have multiple synchronized variables I am unsure if I should use the [FieldChangeCallback(string)] attribute
     /// https://udonsharp.docs.vrchat.com/udonsharp/#fieldchangecallback
     [UdonSynced]
-    private Color _color;
+    private Color _color = new Color(0.0f, 0.0f, 0.0f, 1.0f);
 
     /// <summary>
     /// Multiplier for hue of color value, a value of 0 or 1 implies no change.
@@ -167,22 +167,10 @@ public class MidiOrchestrator : UdonSharpBehaviour
         _updateRate_s = (float)updateRate;
         _updateRate_Hz = 1.0f / _updateRate_s;
         for (int i = 0; i < buttonEvents.Length; i++)
-        // foreach (UdonSharpBehaviour buttonEvent in buttonEvents)
         {
             buttonEvents[i].SetProgramVariable("_updateRate_s", _updateRate_s);
             buttonEvents[i].SetProgramVariable("_updateRate_Hz", _updateRate_Hz);
-            // buttonEvents[i].SetProgramVariable("usesAreaLit", usesAreaLit);
-            // buttonEvents[i].SetProgramVariable("usesLTCGI", usesLTCGI);
             buttonEvents[i].SetProgramVariable("indexOfBehavior", i);
-            // if (usesAreaLit)
-            // {
-            //     buttonEvents[i].SetProgramVariable("_areaLitMesh", areaLitMeshes[i]);
-            // }
-            // if (usesLTCGI)
-            // {
-            //     // TODO: Hook-in for LTCGI
-            //     // buttonEvents[i].SetProgramVariable("", );
-            // }
         }
         RequestSerialization();
     }
@@ -332,6 +320,7 @@ public class MidiOrchestrator : UdonSharpBehaviour
         }
         else
         {
+            Debug.Log($@"Off event because velocity = 0 for {_noteValue}");
             switch (_noteValue)
             {
                 case NOTE_0:
@@ -407,7 +396,6 @@ public class MidiOrchestrator : UdonSharpBehaviour
 
         if (usesVisualizer & number < padStop)
             MidiVisualizer.SetProgramVariable("_padIndex", _noteValue);
-
         switch (_noteValue)
         {
             case NOTE_0:
