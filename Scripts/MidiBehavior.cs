@@ -29,7 +29,7 @@ public class MidiBehavior : UdonSharpBehaviour
 
     // AreaLit specific settings
     [HideInInspector] public bool _usesAreaLit = false;
-    [HideInInspector] public float _intensityMult = 4.0f; // Sync this value
+    [HideInInspector] public float _intensityMult = 4.0f;
     private float targetIntensity;
     [HideInInspector] public GameObject _areaListMesh;
     private Renderer _AreaLitRenderer;
@@ -83,10 +83,16 @@ public class MidiBehavior : UdonSharpBehaviour
         {
             _isArray = true;
             _childRenderers = transform.GetComponentsInChildren<Renderer>(true);
-            foreach (Renderer renderer in _childRenderers)
+            if(_usesAreaLit)
+            {
+                _AreaLitChildRenderers = _areaListMesh.GetComponentsInChildren<Renderer>(true);
+                
+            }
+            for(int i = 0; i < _childRenderers.Length; i++)
             {
                 var block = new MaterialPropertyBlock();
-                _UpdateRendererMaterialProperties(renderer, block, _currentColor)
+                _UpdateRendererMaterialProperties(_childRenderers[i], block, _currentColor)
+                _UpdateAreaLit(_usesAreaLit, _AreaLitChildRenderers[i], _currentColor, defaultIntensityMult);
             }
         }
 
@@ -102,12 +108,7 @@ public class MidiBehavior : UdonSharpBehaviour
                 float defaultIntensityMult = (float)Math.Pow(2.0, (double)_intensityMult);
                 _AreaLitRenderer = _areaListMesh.GetComponent<Renderer>();
                 var areaLitBlock = new MaterialPropertyBlock();
-                block.SetColor("_LightColor", new Color(_currentColor.r * defaultIntensityMult,
-                                                        _currentColor.g * defaultIntensityMul,
-                                                        _currentColor.b * defaultIntensityMult,
-                                                        _currentColor.a * defaultIntensityMult;
-                                                        _currentColor.a * (float)Math.Pow(2.0, (double)_intensityMult)));
-                _AreaLitRenderer.SetPropertyBlock(areaLitBlock);
+                _UpdateAreaLit(_usesAreaLit, _AreaLitRenderer, _currentColor, defaultIntensityMult);
             }
         }
     }
@@ -160,6 +161,7 @@ public class MidiBehavior : UdonSharpBehaviour
             }
         }
     }
+
     /// <summary>
     /// Recursively updates a single game object's MaterialPropertyBlock until it reaches some target color.
     /// </summary>
@@ -214,19 +216,16 @@ public class MidiBehavior : UdonSharpBehaviour
             _rgba_step = new Vector4(LerpStepSize(_currentColor.r, _color.r, _attack), LerpStepSize(_currentColor.g, _color.g, _attack), LerpStepSize(_currentColor.b, _color.b, _attack), LerpStepSize(_currentColor.a, _color.a, _attack));
         }
         // Iterate through each child renderer in the GameObject array
-        foreach (Renderer renderer in _childRenderers)
+        for(int i = 0; i < _childRenderers.Length; i++)
         {
-            Transform child = renderer.transform;
-            int index = child.GetSiblingIndex();
-
             // Get current renderer's MaterialPropertyBlock and ensures the color is within some defined bounds
             var block = new MaterialPropertyBlock();
-            renderer.GetPropertyBlock(block);
+            _childRenderers[i].GetPropertyBlock(block);
             _currentColor = block.GetColor(_Color);
             Vector4 _currentColorVec4 = new Vector4((float)Math.Round((double)_currentColor.r, 3), (float)Math.Round((double)_currentColor.g, 3), (float)Math.Round((double)_currentColor.b, 3), (float)Math.Round((double)_currentColor.a, 3));
 
             // Do not update each renderer at the same time, updates should be offset by at least one iteration
-            if (_iteration - index < 0)
+            if (_iteration - i < 0)
             {
                 continue;
             }
@@ -236,8 +235,9 @@ public class MidiBehavior : UdonSharpBehaviour
             if (RoughlyEquivalent(_currentColorVec4, _targetColorVec4))
             {
                 Color _targetColor = new Color(_targetColorVec4.x, _targetColorVec4.y, _targetColorVec4.z, _targetColorVec4.w);
-                _UpdateRendererMaterialProperties(renderer, block, _targetColor);
-                // _UpdateAreaLit(_usesAreaLit, renderer, _targetColor, targetIntensity);
+                // Area lit needs its own field for area lit meshes
+                _UpdateRendererMaterialProperties(_childRenderers[i], block, _targetColor);
+                _UpdateAreaLit(_usesAreaLit, _AreaLitChildRenderers[i], _targetColor, targetIntensity);
 
 
                 if (index == _numChildren - 1)
@@ -253,11 +253,10 @@ public class MidiBehavior : UdonSharpBehaviour
             else
             {
                 _updatedColor = _UpdateColor(_currentColorVec4, _targetColorVec4, _rgba_step);
-                _UpdateRendererMaterialProperties(renderer, block, _updatedColor);
-                // _UpdateAreaLit(_usesAreaLit, renderer, _targetColor, targetIntensity);
+                _UpdateRendererMaterialProperties(_childRenderers[i], block, _updatedColor);
+                _UpdateAreaLit(_usesAreaLit, _AreaLitChildRenderers[i], _updatedColor, targetIntensity);
             }
         }
-        // After each renderer has been updated, increase iteration and recurse
         _iteration++;
         SendCustomEventDelayedSeconds(nameof(UpdateArray), _updateRate_Hz);
     }
@@ -374,6 +373,7 @@ public class MidiBehavior : UdonSharpBehaviour
         // }
         return (AlmostEquals(v1.x, v2.x) & AlmostEquals(v1.y, v2.y) & AlmostEquals(v1.z, v2.z) & AlmostEquals(v1.w, v2.w));
     }
+
     /// <summary>
     /// Checks to see if one float is almost equal to another float up to some precision value
     /// </summary>
@@ -399,6 +399,7 @@ public class MidiBehavior : UdonSharpBehaviour
                 areaLitRenderer.SetPropertyBlock(areaLitBlock);
             }
     }
+
     private void _UpdateRendererMaterialProperties(Renderer renderer, MaterialPropertyBlock block, Color col)
     {
         block.SetColor(_EmissionColor, col);

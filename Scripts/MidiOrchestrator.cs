@@ -42,7 +42,8 @@ public class MidiOrchestrator : UdonSharpBehaviour
     [Tooltip("How much a value should change when pressed by a pad")]
     [Range(0.0f, 1.0f)]
     public float padCCChangeAmnt = 0.05f;
-
+    [Tooltip("Objects containing AreaLit Meshes")]
+    public GameObject[] areaLitMeshes;
 
     // TODO: Implementation
     public bool usesLTCGI = false;
@@ -163,6 +164,7 @@ public class MidiOrchestrator : UdonSharpBehaviour
     private const float CC_MAX = 127.0f;
     private const float MAX_COLOR_VALUE = 1.0f;
     private const float MIN_COLOR_VALUE = 0.0f;
+    private const float MAX_INTENSITY_MULT = 5.0f;
 
     /// <summary>
     /// Event that is triggered when the script is intialized. Some intial variables are calculated and set once, then sychronized across relevant UdonBehaviors
@@ -171,12 +173,22 @@ public class MidiOrchestrator : UdonSharpBehaviour
     {
         _updateRate_s = (float)updateRate;
         _updateRate_Hz = 1.0f / _updateRate_s;
-        foreach (UdonSharpBehaviour buttonEvent in buttonEvents)
+        for (int i = 0; i < buttonEvents.Length, i++)
+        // foreach (UdonSharpBehaviour buttonEvent in buttonEvents)
         {
-            buttonEvent.SetProgramVariable("_updateRate_s", _updateRate_s);
-            buttonEvent.SetProgramVariable("_updateRate_Hz", _updateRate_Hz);
-            buttonEvent.SetProgramVariable("usesAreaLit", _usesAreaLit);
-            buttonEvent.SetProgramVariable("usesLTCGI", _usesLTCGI);
+            buttonEvents[i].SetProgramVariable("_updateRate_s", _updateRate_s);
+            buttonEvents[i].SetProgramVariable("_updateRate_Hz", _updateRate_Hz);
+            buttonEvents[i].SetProgramVariable("usesAreaLit", usesAreaLit);
+            buttonEvents[i].SetProgramVariable("usesLTCGI", usesLTCGI);
+            if(usesAreaLit)
+            {
+                buttonEvents[i].SetProgramVariable("_areaLitMesh", areaLitMeshes[i]);
+            }
+            if(usesLTCGI)
+            {
+                // TODO: Hook-in for LTCGI
+                // buttonEvents[i].SetProgramVariable("", );
+            }
         }
         RequestSerialization();
     }
@@ -192,6 +204,7 @@ public class MidiOrchestrator : UdonSharpBehaviour
             buttonEvent.SetProgramVariable("_decay", _decay);
             buttonEvent.SetProgramVariable("_sustain", _sustain);
             buttonEvent.SetProgramVariable("_release", _release);
+            buttonEvent.SetProgramVariable("_intensityMult", _intensityMult);
         }
     }
 
@@ -220,6 +233,7 @@ public class MidiOrchestrator : UdonSharpBehaviour
                 buttonEvent.SetProgramVariable("_decay", _decay);
                 buttonEvent.SetProgramVariable("_sustain", _sustain);
                 buttonEvent.SetProgramVariable("_release", _release);
+                buttonEvent.SetProgramVariable("_intensityMult", _intensityMult);
             }
         }
     }
@@ -507,9 +521,13 @@ public class MidiOrchestrator : UdonSharpBehaviour
         {
             _release = value_nrm * maxTime;
         }
+        else if (number == INTENSITYMULT)
+        {
+            _intensityMult = value_nrm * MAX_INTENSITY_MULT;
+        }
         else
         {
-            Debug.Log("Invalid CC");
+            Debug.Log($@"Invalid CC of {number}");
         }
 
         foreach (UdonSharpBehaviour buttonEvent in buttonEvents)
@@ -519,6 +537,7 @@ public class MidiOrchestrator : UdonSharpBehaviour
             buttonEvent.SetProgramVariable("_decay", _decay);
             buttonEvent.SetProgramVariable("_sustain", _sustain);
             buttonEvent.SetProgramVariable("_release", _release);
+            buttonEvent.SetProgramVariable("_intensityMult", _intensityMult);
         }
 
         if (usesVisualizer)
@@ -532,6 +551,7 @@ public class MidiOrchestrator : UdonSharpBehaviour
             MidiVisualizer.SetProgramVariable("_decay", _decay);
             MidiVisualizer.SetProgramVariable("_sustain", _sustain);
             MidiVisualizer.SetProgramVariable("_release", _release);
+            MidiVisualizer.SetProgramVariable("_intensityMult", _intensityMult);
         }
 
         RequestSerialization();
@@ -626,6 +646,14 @@ public class MidiOrchestrator : UdonSharpBehaviour
         {
             _release = _release <= 0.0f ? 0.0f : (_release - padCCChangeAmnt) * maxTime;
         }
+        else if (note == INTENSITYMULT)
+        {
+            _intensityMult = _intensityMult >= MAX_INTENSITY_MULT ? MAX_INTENSITY_MULT : (_intensityMult + padCCChangeAmnt) * MAX_INTENSITY_MULT;
+        }
+        else if (note == INTENSITYMULT_DEC)
+        {
+            _intensityMult = _intensityMult <= 0.0f ? 0.0f : (_intensityMult - padCCChangeAmnt) * MAX_INTENSITY_MULT;
+        }
         else
         {
             Debug.Log("Invalid Pad");
@@ -638,6 +666,7 @@ public class MidiOrchestrator : UdonSharpBehaviour
             buttonEvent.SetProgramVariable("_decay", _decay);
             buttonEvent.SetProgramVariable("_sustain", _sustain);
             buttonEvent.SetProgramVariable("_release", _release);
+            buttonEvent.SetProgramVariable("_intensityMult", _intensityMult);
         }
 
         if (usesVisualizer)
@@ -651,6 +680,7 @@ public class MidiOrchestrator : UdonSharpBehaviour
             MidiVisualizer.SetProgramVariable("_decay", _decay);
             MidiVisualizer.SetProgramVariable("_sustain", _sustain);
             MidiVisualizer.SetProgramVariable("_release", _release);
+            MidiVisualizer.SetProgramVariable("_intensityMult", _intensityMult);
         }
 
         RequestSerialization();

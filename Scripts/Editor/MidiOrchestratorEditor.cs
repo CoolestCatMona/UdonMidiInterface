@@ -346,7 +346,7 @@ public class MidiOrchestratorEditor : Editor
                 EditorGUILayout.HelpBox("Eventual Hook-ins for Area Lit Here", MessageType.Info, true);
                 var useAreaLit = serializedObject.FindProperty("usesAreaLit");
                 useAreaLit.boolValue = true;
-                EditorGUILayout.PropertyField(serializedObject.FindProperty("sustainLevel"),new GUIContent("Sustain Level", "Intensity of material to Sustain for the amount of time defined by the sustain CC"),  true);
+                EditorGUILayout.PropertyField(serializedObject.FindProperty("areaLitMeshes"), new GUIContent("Area Lit Meshes", "Meshes / continaer of objects with the 'AreaLit / LightMesh' shader"));
                 break;
             default:
                 Debug.LogError("Unrecognized Option");
