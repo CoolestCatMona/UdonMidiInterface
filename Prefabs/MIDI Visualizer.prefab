@@ -6049,7 +6049,7 @@ MonoBehaviour:
     m_HorizontalOverflow: 0
     m_VerticalOverflow: 0
     m_LineSpacing: 1
-  m_Text: Delay
+  m_Text: Decay
 --- !u!1 &3405899152299375540
 GameObject:
   m_ObjectHideFlags: 0

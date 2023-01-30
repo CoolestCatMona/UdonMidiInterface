@@ -42,18 +42,11 @@ public class MidiOrchestrator : UdonSharpBehaviour
     [Tooltip("How much a value should change when pressed by a pad")]
     [Range(0.0f, 1.0f)]
     public float padCCChangeAmnt = 0.05f;
-    [Tooltip("Objects containing AreaLit Meshes")]
-    public GameObject[] areaLitMeshes;
-
-    // TODO: Implementation
-    public bool usesLTCGI = false;
-    public bool usesAreaLit = false;
 
     /// <summary>
     /// Serialized fields used in editor
     /// </summary>
     [SerializeField] private int _controllerSelectionIndex = 1;
-    [SerializeField] private int _thirdPartySelectionIndex = 0;
 
     /// <summary>
     /// Private, intermediate values used by behavior
@@ -123,7 +116,7 @@ public class MidiOrchestrator : UdonSharpBehaviour
     [SerializeField] private int DECAY = 18;
     [SerializeField] private int SUSTAIN = 19;
     [SerializeField] private int RELEASE = 16;
-    [SerializeField] private int INTENSITYMULT = -1;
+    [SerializeField] private int INTENSITYMULT = 77;
 
     // When using pads, these values correspond to decrementing a value
     [SerializeField] private int RED_DEC = 0;
@@ -134,7 +127,7 @@ public class MidiOrchestrator : UdonSharpBehaviour
     [SerializeField] private int DECAY_DEC = 0;
     [SerializeField] private int SUSTAIN_DEC = 0;
     [SerializeField] private int RELEASE_DEC = 0;
-    [SerializeField] private int INTENSITYMULT_DEC = -1;
+    [SerializeField] private int INTENSITYMULT_DEC = 0;
 
 
     /// <summary>
@@ -173,23 +166,23 @@ public class MidiOrchestrator : UdonSharpBehaviour
     {
         _updateRate_s = (float)updateRate;
         _updateRate_Hz = 1.0f / _updateRate_s;
-        for (int i = 0; i < buttonEvents.Length, i++)
+        for (int i = 0; i < buttonEvents.Length; i++)
         // foreach (UdonSharpBehaviour buttonEvent in buttonEvents)
         {
             buttonEvents[i].SetProgramVariable("_updateRate_s", _updateRate_s);
             buttonEvents[i].SetProgramVariable("_updateRate_Hz", _updateRate_Hz);
-            buttonEvents[i].SetProgramVariable("usesAreaLit", usesAreaLit);
-            buttonEvents[i].SetProgramVariable("usesLTCGI", usesLTCGI);
+            // buttonEvents[i].SetProgramVariable("usesAreaLit", usesAreaLit);
+            // buttonEvents[i].SetProgramVariable("usesLTCGI", usesLTCGI);
             buttonEvents[i].SetProgramVariable("indexOfBehavior", i);
-            if(usesAreaLit)
-            {
-                buttonEvents[i].SetProgramVariable("_areaLitMesh", areaLitMeshes[i]);
-            }
-            if(usesLTCGI)
-            {
-                // TODO: Hook-in for LTCGI
-                // buttonEvents[i].SetProgramVariable("", );
-            }
+            // if (usesAreaLit)
+            // {
+            //     buttonEvents[i].SetProgramVariable("_areaLitMesh", areaLitMeshes[i]);
+            // }
+            // if (usesLTCGI)
+            // {
+            //     // TODO: Hook-in for LTCGI
+            //     // buttonEvents[i].SetProgramVariable("", );
+            // }
         }
         RequestSerialization();
     }

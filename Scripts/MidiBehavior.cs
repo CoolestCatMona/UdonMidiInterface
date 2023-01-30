@@ -29,10 +29,11 @@ public class MidiBehavior : UdonSharpBehaviour
     [HideInInspector] public int indexOfBehavior;
 
     // AreaLit specific settings
-    [HideInInspector] public bool _usesAreaLit = false;
-    [HideInInspector] public float _intensityMult = 4.0f;
+    [SerializeField] private int _thirdPartySelectionIndex = 0;
+    public bool _usesAreaLit = false;
+    public float _intensityMult = 4.0f;
     private float targetIntensity;
-    [HideInInspector] public GameObject _areaListMesh;
+    public GameObject _areaListMesh;
     private Renderer _AreaLitRenderer;
     private Renderer[] _AreaLitChildRenderers;
 
@@ -84,16 +85,16 @@ public class MidiBehavior : UdonSharpBehaviour
         {
             _isArray = true;
             _childRenderers = transform.GetComponentsInChildren<Renderer>(true);
-            if(_usesAreaLit)
+            if (_usesAreaLit)
             {
                 _AreaLitChildRenderers = _areaListMesh.GetComponentsInChildren<Renderer>(true);
-                
+
             }
-            for(int i = 0; i < _childRenderers.Length; i++)
+            for (int i = 0; i < _childRenderers.Length; i++)
             {
                 var block = new MaterialPropertyBlock();
-                _UpdateRendererMaterialProperties(_childRenderers[i], block, _currentColor)
-                _UpdateAreaLit(_usesAreaLit, _AreaLitChildRenderers[i], _currentColor, defaultIntensityMult);
+                _UpdateRendererMaterialProperties(_childRenderers[i], block, _currentColor);
+                _UpdateAreaLit(_usesAreaLit, _AreaLitChildRenderers[i], _currentColor, _intensityMult);
             }
         }
 
@@ -102,9 +103,9 @@ public class MidiBehavior : UdonSharpBehaviour
             _isArray = false;
             _Renderer = transform.GetComponent<Renderer>();
             var block = new MaterialPropertyBlock();
-            _UpdateRendererMaterialProperties(_Renderer, block, _currentColor)
+            _UpdateRendererMaterialProperties(_Renderer, block, _currentColor);
 
-            if(_usesAreaLit)
+            if (_usesAreaLit)
             {
                 float defaultIntensityMult = (float)Math.Pow(2.0, (double)_intensityMult);
                 _AreaLitRenderer = _areaListMesh.GetComponent<Renderer>();
@@ -122,7 +123,10 @@ public class MidiBehavior : UdonSharpBehaviour
     {
         _onEventLock = true;
         _targetColorVec4 = new Vector4(_color.r, _color.g, _color.b, _color.a);
-        _rgba_step = new Vector4(LerpStepSize(_initialColor.r, _color.r, _attack), LerpStepSize(_initialColor.g, _color.g, _attack), LerpStepSize(_initialColor.b, _color.b, _attack), LerpStepSize(_initialColor.a, _color.a, _attack));
+        _rgba_step = new Vector4(LerpStepSize(_initialColor.r, _color.r, _attack),
+                                 LerpStepSize(_initialColor.g, _color.g, _attack),
+                                 LerpStepSize(_initialColor.b, _color.b, _attack),
+                                 LerpStepSize(_initialColor.a, _color.a, _attack));
         targetIntensity = (float)Math.Pow(2.0, (double)_intensityMult);
 
         if (_isArray)
@@ -186,7 +190,7 @@ public class MidiBehavior : UdonSharpBehaviour
         {
             Color _targetColor = new Color(_targetColorVec4.x, _targetColorVec4.y, _targetColorVec4.z, _targetColorVec4.w);
 
-            _UpdateRendererMaterialProperties(_Renderer, block, _targetColor)
+            _UpdateRendererMaterialProperties(_Renderer, block, _targetColor);
             _UpdateAreaLit(_usesAreaLit, _AreaLitRenderer, _targetColor, targetIntensity);
 
             _initialColor = block.GetColor(_Color);
@@ -217,7 +221,7 @@ public class MidiBehavior : UdonSharpBehaviour
             _rgba_step = new Vector4(LerpStepSize(_currentColor.r, _color.r, _attack), LerpStepSize(_currentColor.g, _color.g, _attack), LerpStepSize(_currentColor.b, _color.b, _attack), LerpStepSize(_currentColor.a, _color.a, _attack));
         }
         // Iterate through each child renderer in the GameObject array
-        for(int i = 0; i < _childRenderers.Length; i++)
+        for (int i = 0; i < _childRenderers.Length; i++)
         {
             // Get current renderer's MaterialPropertyBlock and ensures the color is within some defined bounds
             var block = new MaterialPropertyBlock();
@@ -241,7 +245,7 @@ public class MidiBehavior : UdonSharpBehaviour
                 _UpdateAreaLit(_usesAreaLit, _AreaLitChildRenderers[i], _targetColor, targetIntensity);
 
 
-                if (index == _numChildren - 1)
+                if (i == _numChildren - 1)
                 {
                     _onEventLock = false;
                     _offEventLock = false;
@@ -390,15 +394,15 @@ public class MidiBehavior : UdonSharpBehaviour
 
     private void _UpdateAreaLit(bool useAreaLit, Renderer areaLitRenderer, Color col, float intensity)
     {
-            if(useAreaLit)
-            {
-                var areaLitBlock = new MaterialPropertyBlock();
-                areaLitBlock.SetColor("_LightColor", new Color(col.r * intensity,
-                                                               col.g * intensity,
-                                                               col.b * intensity,
-                                                               col.a * intensity));
-                areaLitRenderer.SetPropertyBlock(areaLitBlock);
-            }
+        if (useAreaLit)
+        {
+            var areaLitBlock = new MaterialPropertyBlock();
+            areaLitBlock.SetColor("_LightColor", new Color(col.r * intensity,
+                                                           col.g * intensity,
+                                                           col.b * intensity,
+                                                           col.a * intensity));
+            areaLitRenderer.SetPropertyBlock(areaLitBlock);
+        }
     }
 
     private void _UpdateRendererMaterialProperties(Renderer renderer, MaterialPropertyBlock block, Color col)
