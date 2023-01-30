@@ -26,6 +26,7 @@ public class MidiBehavior : UdonSharpBehaviour
     [HideInInspector] public float _release = 1.0f;
     [HideInInspector] public float _updateRate_s = 1.0f;
     [HideInInspector] public float _updateRate_Hz = 1.0f;
+    [HideInInspector] public int indexOfBehavior;
 
     // AreaLit specific settings
     [HideInInspector] public bool _usesAreaLit = false;
@@ -268,22 +269,22 @@ public class MidiBehavior : UdonSharpBehaviour
     /// <returns>Clamped Color</returns>
     private Color _UpdateColor(Vector4 current, Vector4 target, Vector4 step)
     {
-        if ((current.x <= target.x & step.x <= 0) | (current.x >= target.x & step.x >= 0))
+        if ((current.x <= target.x & step.x <= 0) || (current.x >= target.x & step.x >= 0))
             current.x = target.x;
         else
             current.x = current.x + step.x;
 
-        if ((current.y <= target.y & step.y <= 0) | (current.y >= target.y & step.y >= 0))
+        if ((current.y <= target.y & step.y <= 0) || (current.y >= target.y & step.y >= 0))
             current.y = target.y;
         else
             current.y = current.y + step.y;
 
-        if ((current.z <= target.z & step.z <= 0) | (current.z >= target.z & step.z >= 0))
+        if ((current.z <= target.z & step.z <= 0) || (current.z >= target.z & step.z >= 0))
             current.z = target.z;
         else
             current.z = current.z + step.z;
 
-        if ((current.w <= target.w & step.w <= 0) | (current.w >= target.w & step.w >= 0))
+        if ((current.w <= target.w & step.w <= 0) || (current.w >= target.w & step.w >= 0))
             current.w = target.w;
         else
             current.w = current.w + step.w;

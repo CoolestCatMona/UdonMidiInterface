@@ -180,6 +180,7 @@ public class MidiOrchestrator : UdonSharpBehaviour
             buttonEvents[i].SetProgramVariable("_updateRate_Hz", _updateRate_Hz);
             buttonEvents[i].SetProgramVariable("usesAreaLit", usesAreaLit);
             buttonEvents[i].SetProgramVariable("usesLTCGI", usesLTCGI);
+            buttonEvents[i].SetProgramVariable("indexOfBehavior", i);
             if(usesAreaLit)
             {
                 buttonEvents[i].SetProgramVariable("_areaLitMesh", areaLitMeshes[i]);

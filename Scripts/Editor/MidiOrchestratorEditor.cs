@@ -329,6 +329,7 @@ public class MidiOrchestratorEditor : Editor
     /// </summary>
     public void DrawThirdPartyPluginSettings()
     {
+        EditorGUI.indentLevel++;
         switch (_thirdPartySelectionIndex)
         {
             case CUSTOM_CONTROLLER:
@@ -346,12 +347,13 @@ public class MidiOrchestratorEditor : Editor
                 EditorGUILayout.HelpBox("Eventual Hook-ins for Area Lit Here", MessageType.Info, true);
                 var useAreaLit = serializedObject.FindProperty("usesAreaLit");
                 useAreaLit.boolValue = true;
-                EditorGUILayout.PropertyField(serializedObject.FindProperty("areaLitMeshes"), new GUIContent("Area Lit Meshes", "Meshes / continaer of objects with the 'AreaLit / LightMesh' shader"));
+                EditorGUILayout.PropertyField(serializedObject.FindProperty("areaLitMeshes"), new GUIContent("Area Lit Meshes", "Meshes / continaer of objects with the 'AreaLit / LightMesh' Shader"));
                 break;
             default:
                 Debug.LogError("Unrecognized Option");
                 break;
         }
+        EditorGUI.indentLevel--;
         serializedObject.ApplyModifiedProperties();  
     }
 }
