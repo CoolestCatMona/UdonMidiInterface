@@ -43,16 +43,10 @@ public class MidiOrchestrator : UdonSharpBehaviour
     [Range(0.0f, 1.0f)]
     public float padCCChangeAmnt = 0.05f;
 
-
-    // TODO: Implementation
-    public bool usesLTCGI = false;
-    public bool usesAreaLit = false;
-
     /// <summary>
     /// Serialized fields used in editor
     /// </summary>
     [SerializeField] private int _controllerSelectionIndex = 1;
-    [SerializeField] private int _thirdPartySelectionIndex = 0;
 
     /// <summary>
     /// Private, intermediate values used by behavior
@@ -73,7 +67,7 @@ public class MidiOrchestrator : UdonSharpBehaviour
     /// Because I have multiple synchronized variables I am unsure if I should use the [FieldChangeCallback(string)] attribute
     /// https://udonsharp.docs.vrchat.com/udonsharp/#fieldchangecallback
     [UdonSynced]
-    private Color _color;
+    private Color _color = new Color(0.0f, 0.0f, 0.0f, 1.0f);
 
     /// <summary>
     /// Multiplier for hue of color value, a value of 0 or 1 implies no change.
@@ -106,6 +100,12 @@ public class MidiOrchestrator : UdonSharpBehaviour
     private float _release = 1.0f;
 
     /// <summary>
+    /// Intensity multiplier for materials. Material property will be multiplied by 2^intensityMult value
+    /// </summary>
+    [UdonSynced]
+    private float _intensityMult = 0.0f;
+
+    /// <summary>
     /// Numbers corresponding to CC on a MIDI controller.
     /// </summary>
     [SerializeField] private int RED = 10;
@@ -116,6 +116,7 @@ public class MidiOrchestrator : UdonSharpBehaviour
     [SerializeField] private int DECAY = 18;
     [SerializeField] private int SUSTAIN = 19;
     [SerializeField] private int RELEASE = 16;
+    [SerializeField] private int INTENSITYMULT = 77;
 
     // When using pads, these values correspond to decrementing a value
     [SerializeField] private int RED_DEC = 0;
@@ -126,6 +127,7 @@ public class MidiOrchestrator : UdonSharpBehaviour
     [SerializeField] private int DECAY_DEC = 0;
     [SerializeField] private int SUSTAIN_DEC = 0;
     [SerializeField] private int RELEASE_DEC = 0;
+    [SerializeField] private int INTENSITYMULT_DEC = 0;
 
 
     /// <summary>
@@ -155,6 +157,7 @@ public class MidiOrchestrator : UdonSharpBehaviour
     private const float CC_MAX = 127.0f;
     private const float MAX_COLOR_VALUE = 1.0f;
     private const float MIN_COLOR_VALUE = 0.0f;
+    private const float MAX_INTENSITY_MULT = 5.0f;
 
     /// <summary>
     /// Event that is triggered when the script is intialized. Some intial variables are calculated and set once, then sychronized across relevant UdonBehaviors
@@ -163,10 +166,11 @@ public class MidiOrchestrator : UdonSharpBehaviour
     {
         _updateRate_s = (float)updateRate;
         _updateRate_Hz = 1.0f / _updateRate_s;
-        foreach (UdonSharpBehaviour buttonEvent in buttonEvents)
+        for (int i = 0; i < buttonEvents.Length; i++)
         {
-            buttonEvent.SetProgramVariable("_updateRate_s", _updateRate_s);
-            buttonEvent.SetProgramVariable("_updateRate_Hz", _updateRate_Hz);
+            buttonEvents[i].SetProgramVariable("_updateRate_s", _updateRate_s);
+            buttonEvents[i].SetProgramVariable("_updateRate_Hz", _updateRate_Hz);
+            buttonEvents[i].SetProgramVariable("indexOfBehavior", i);
         }
         RequestSerialization();
     }
@@ -182,6 +186,7 @@ public class MidiOrchestrator : UdonSharpBehaviour
             buttonEvent.SetProgramVariable("_decay", _decay);
             buttonEvent.SetProgramVariable("_sustain", _sustain);
             buttonEvent.SetProgramVariable("_release", _release);
+            buttonEvent.SetProgramVariable("_intensityMult", _intensityMult);
         }
     }
 
@@ -210,6 +215,7 @@ public class MidiOrchestrator : UdonSharpBehaviour
                 buttonEvent.SetProgramVariable("_decay", _decay);
                 buttonEvent.SetProgramVariable("_sustain", _sustain);
                 buttonEvent.SetProgramVariable("_release", _release);
+                buttonEvent.SetProgramVariable("_intensityMult", _intensityMult);
             }
         }
     }
@@ -314,6 +320,7 @@ public class MidiOrchestrator : UdonSharpBehaviour
         }
         else
         {
+            Debug.Log($@"Off event because velocity = 0 for {_noteValue}");
             switch (_noteValue)
             {
                 case NOTE_0:
@@ -389,7 +396,6 @@ public class MidiOrchestrator : UdonSharpBehaviour
 
         if (usesVisualizer & number < padStop)
             MidiVisualizer.SetProgramVariable("_padIndex", _noteValue);
-
         switch (_noteValue)
         {
             case NOTE_0:
@@ -497,9 +503,13 @@ public class MidiOrchestrator : UdonSharpBehaviour
         {
             _release = value_nrm * maxTime;
         }
+        else if (number == INTENSITYMULT)
+        {
+            _intensityMult = value_nrm * MAX_INTENSITY_MULT;
+        }
         else
         {
-            Debug.Log("Invalid CC");
+            Debug.Log($@"Invalid CC of {number}");
         }
 
         foreach (UdonSharpBehaviour buttonEvent in buttonEvents)
@@ -509,6 +519,7 @@ public class MidiOrchestrator : UdonSharpBehaviour
             buttonEvent.SetProgramVariable("_decay", _decay);
             buttonEvent.SetProgramVariable("_sustain", _sustain);
             buttonEvent.SetProgramVariable("_release", _release);
+            buttonEvent.SetProgramVariable("_intensityMult", _intensityMult);
         }
 
         if (usesVisualizer)
@@ -522,6 +533,7 @@ public class MidiOrchestrator : UdonSharpBehaviour
             MidiVisualizer.SetProgramVariable("_decay", _decay);
             MidiVisualizer.SetProgramVariable("_sustain", _sustain);
             MidiVisualizer.SetProgramVariable("_release", _release);
+            MidiVisualizer.SetProgramVariable("_intensityMult", _intensityMult);
         }
 
         RequestSerialization();
@@ -616,6 +628,14 @@ public class MidiOrchestrator : UdonSharpBehaviour
         {
             _release = _release <= 0.0f ? 0.0f : (_release - padCCChangeAmnt) * maxTime;
         }
+        else if (note == INTENSITYMULT)
+        {
+            _intensityMult = _intensityMult >= MAX_INTENSITY_MULT ? MAX_INTENSITY_MULT : (_intensityMult + padCCChangeAmnt) * MAX_INTENSITY_MULT;
+        }
+        else if (note == INTENSITYMULT_DEC)
+        {
+            _intensityMult = _intensityMult <= 0.0f ? 0.0f : (_intensityMult - padCCChangeAmnt) * MAX_INTENSITY_MULT;
+        }
         else
         {
             Debug.Log("Invalid Pad");
@@ -628,6 +648,7 @@ public class MidiOrchestrator : UdonSharpBehaviour
             buttonEvent.SetProgramVariable("_decay", _decay);
             buttonEvent.SetProgramVariable("_sustain", _sustain);
             buttonEvent.SetProgramVariable("_release", _release);
+            buttonEvent.SetProgramVariable("_intensityMult", _intensityMult);
         }
 
         if (usesVisualizer)
@@ -641,6 +662,7 @@ public class MidiOrchestrator : UdonSharpBehaviour
             MidiVisualizer.SetProgramVariable("_decay", _decay);
             MidiVisualizer.SetProgramVariable("_sustain", _sustain);
             MidiVisualizer.SetProgramVariable("_release", _release);
+            MidiVisualizer.SetProgramVariable("_intensityMult", _intensityMult);
         }
 
         RequestSerialization();

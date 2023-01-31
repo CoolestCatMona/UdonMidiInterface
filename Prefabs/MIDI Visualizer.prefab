@@ -924,7 +924,7 @@ MonoBehaviour:
     m_HorizontalOverflow: 0
     m_VerticalOverflow: 0
     m_LineSpacing: 1
-  m_Text: Unused
+  m_Text: INTS MUL
 --- !u!1 &3405899150962767122
 GameObject:
   m_ObjectHideFlags: 0
@@ -2416,7 +2416,7 @@ Rigidbody:
   m_Mass: 1
   m_Drag: 0
   m_AngularDrag: 0.05
-  m_UseGravity: 1
+  m_UseGravity: 0
   m_IsKinematic: 0
   m_Interpolate: 0
   m_Constraints: 0
@@ -2897,7 +2897,6 @@ GameObject:
   - component: {fileID: 3405899151458632575}
   - component: {fileID: 3405899151458632515}
   - component: {fileID: 3405899151458632514}
-  - component: {fileID: 3405899151458632573}
   - component: {fileID: 3405899151458632572}
   m_Layer: 13
   m_Name: Visualizer
@@ -2970,19 +2969,6 @@ MeshRenderer:
   m_SortingLayerID: 0
   m_SortingLayer: 0
   m_SortingOrder: 0
---- !u!65 &3405899151458632573
-BoxCollider:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 3405899151458632574}
-  m_Material: {fileID: 0}
-  m_IsTrigger: 0
-  m_Enabled: 0
-  serializedVersion: 2
-  m_Size: {x: 1, y: 1, z: 1}
-  m_Center: {x: 0, y: 0, z: 0}
 --- !u!1773428102 &3405899151458632572
 ParentConstraint:
   m_ObjectHideFlags: 0
@@ -6049,7 +6035,7 @@ MonoBehaviour:
     m_HorizontalOverflow: 0
     m_VerticalOverflow: 0
     m_LineSpacing: 1
-  m_Text: Delay
+  m_Text: Decay
 --- !u!1 &3405899152299375540
 GameObject:
   m_ObjectHideFlags: 0

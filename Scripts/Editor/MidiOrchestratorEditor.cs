@@ -107,16 +107,6 @@ public class MidiOrchestratorEditor : Editor
         else
             DrawControllerSpecificSettings(false);
 
-        EditorGUILayout.Space(); EditorGUILayout.Space();
-        GUILayout.Label("Third Party Plugins", header);
-        EditorGUILayout.Space();
-        var thirdPartyPluginSelection = serializedObject.FindProperty("_thirdPartySelectionIndex");
-        thirdPartyPluginSelection.intValue = EditorGUILayout.Popup(new GUIContent("Plugin", "Which plugin to use, if any"),
-                                                thirdPartyPluginSelection.intValue,
-                                                third_party_plugins);
-        _thirdPartySelectionIndex = thirdPartyPluginSelection.intValue;
-        DrawThirdPartyPluginSettings();
-
         EditorGUILayout.Space(); EditorGUILayout.Space(); EditorGUILayout.Space();
         GUILayout.Label("Debug", header);
         var useVisualizer = serializedObject.FindProperty("usesVisualizer");
@@ -162,15 +152,15 @@ public class MidiOrchestratorEditor : Editor
         {
             // Magic numbers used below, IYKYK
             case CUSTOM_CONTROLLER:
-                ControllerSpecificSettings(36, 52, new int[] {10, 74, 71, 76, 114, 18, 19, 16}, false, useDefaults, foldoutState);
+                ControllerSpecificSettings(36, 52, new int[] {10, 74, 71, 76, 114, 18, 19, 16, 77}, false, useDefaults, foldoutState);
                 break;
             case 1:
                 if (foldoutState) EditorGUILayout.HelpBox(help_text, MessageType.Info, true);
-                ControllerSpecificSettings(36, 52, new int[] {10, 74, 71, 76, 114, 18, 19, 16}, false, useDefaults, foldoutState);
+                ControllerSpecificSettings(36, 52, new int[] {10, 74, 71, 76, 114, 18, 19, 16, 77}, false, useDefaults, foldoutState);
                 break;
             case 2:
                 if (foldoutState) EditorGUILayout.HelpBox(help_text, MessageType.Info, true);
-                ControllerSpecificSettings(48, 80, new int[] {65, 64, 69, 68, 73, 72, 77, 76, 67, 66, 71, 70, 75, 74, 79, 78}, true, useDefaults, foldoutState);
+                ControllerSpecificSettings(48, 80, new int[] {65, 64, 69, 68, 73, 72, 77, 76, 67, 66, 71, 70, 75, 74, 79, 78, 79, 80}, true, useDefaults, foldoutState);
                 break;
             default:
                 Debug.LogError("Unrecognized Option");
@@ -220,6 +210,7 @@ public class MidiOrchestratorEditor : Editor
             var decay_P = serializedObject.FindProperty("DECAY");
             var sustain_P = serializedObject.FindProperty("SUSTAIN");
             var release_P = serializedObject.FindProperty("RELEASE");
+            var intensitymult_P = serializedObject.FindProperty("INTENSITYMULT");
 
             var red_M = serializedObject.FindProperty("RED_DEC");
             var green_M = serializedObject.FindProperty("GREEN_DEC");
@@ -229,6 +220,7 @@ public class MidiOrchestratorEditor : Editor
             var decay_M = serializedObject.FindProperty("DECAY_DEC");
             var sustain_M = serializedObject.FindProperty("SUSTAIN_DEC");
             var release_M = serializedObject.FindProperty("RELEASE_DEC");
+            var intensitymult_M = serializedObject.FindProperty("INTENSITYMULT_DEC");
             var padChangeAmnt = serializedObject.FindProperty("padCCChangeAmnt");
             var padStop = serializedObject.FindProperty("padStop");
 
@@ -250,6 +242,8 @@ public class MidiOrchestratorEditor : Editor
                 sustain_M.intValue = cc_array[13];
                 release_P.intValue = cc_array[14];
                 release_M.intValue = cc_array[15];
+                intensitymult_P.intValue = cc_array[16];
+                intensitymult_M.intValue = cc_array[17];
                 padChangeAmnt.floatValue = .05f;
                 padStop.intValue = 64;
             }
@@ -284,6 +278,9 @@ public class MidiOrchestratorEditor : Editor
                 EditorGUILayout.Space();
                 EditorGUILayout.PropertyField(release_P,new GUIContent("Release+"),  true);
                 EditorGUILayout.PropertyField(release_M,new GUIContent("Release-"),  true);
+                EditorGUILayout.Space();
+                EditorGUILayout.PropertyField(intensitymult_P,new GUIContent("Intensity+"),  true);
+                EditorGUILayout.PropertyField(intensitymult_M,new GUIContent("Intensity-"),  true);
             }
         }
         else
@@ -296,6 +293,7 @@ public class MidiOrchestratorEditor : Editor
             var decay_CC = serializedObject.FindProperty("DECAY");
             var sustain_CC = serializedObject.FindProperty("SUSTAIN");
             var release_CC = serializedObject.FindProperty("RELEASE");
+            var intensitymult_CC = serializedObject.FindProperty("INTENSITYMULT");
 
             if(useDefaults)
             {
@@ -307,6 +305,7 @@ public class MidiOrchestratorEditor : Editor
                 decay_CC.intValue = cc_array[5];
                 sustain_CC.intValue = cc_array[6];
                 release_CC.intValue = cc_array[7];
+                intensitymult_CC.intValue = cc_array[8];
             }
 
             if(draw)
@@ -319,30 +318,10 @@ public class MidiOrchestratorEditor : Editor
                 EditorGUILayout.PropertyField(decay_CC,new GUIContent("Decay CC"),  true);
                 EditorGUILayout.PropertyField(sustain_CC,new GUIContent("Sustain CC"),  true);
                 EditorGUILayout.PropertyField(release_CC,new GUIContent("Release CC"),  true);
+                EditorGUILayout.PropertyField(intensitymult_CC,new GUIContent("Intensity CC"),  true);
             }
         }
         EditorGUI.indentLevel--;
-    }
-
-    /// <summary>
-    /// Draws inspector for third party plugins, if used.
-    /// </summary>
-    public void DrawThirdPartyPluginSettings()
-    {
-        switch (_thirdPartySelectionIndex)
-        {
-            case CUSTOM_CONTROLLER:
-                break;
-            case 1:
-                EditorGUILayout.HelpBox("Eventual Hook-ins for LTCGI Here", MessageType.Info, true);
-                break;
-            case 2:
-                EditorGUILayout.HelpBox("Eventual Hook-ins for Area Lit Here", MessageType.Info, true);
-                break;
-            default:
-                Debug.LogError("Unrecognized Option");
-                break;
-        }  
     }
 }
 #endif
