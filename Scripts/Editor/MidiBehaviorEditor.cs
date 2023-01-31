@@ -63,7 +63,6 @@ public class MidiBehaviorEditor : Editor
                 EditorGUILayout.HelpBox("Eventual Hook-ins for Area Lit Here", MessageType.Info, true);
                 useAreaLit.boolValue = true;
                 EditorGUILayout.PropertyField(serializedObject.FindProperty("_areaListMesh"), new GUIContent("Area Lit Meshes", "Meshes / continaer of objects with the 'AreaLit / LightMesh' Shader"));
-                EditorGUILayout.PropertyField(serializedObject.FindProperty("_intensityMult"),new GUIContent("Intensity Multiplier", "Intensity Multiplier"),  true);
                 break;
             default:
                 Debug.LogError("Unrecognized Option");
