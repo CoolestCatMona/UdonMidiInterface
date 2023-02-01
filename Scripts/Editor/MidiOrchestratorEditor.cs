@@ -88,6 +88,7 @@ public class MidiOrchestratorEditor : Editor
         EditorGUILayout.PropertyField(serializedObject.FindProperty("buttonEvents"),new GUIContent("Pad Events", "Events to fire on a pad press"),  true);
         EditorGUILayout.PropertyField(serializedObject.FindProperty("maxTime"),new GUIContent("Transition Time", "Maximum amount of time (s) it should take for any change in material to occur"),  true);
         EditorGUILayout.PropertyField(serializedObject.FindProperty("sustainLevel"),new GUIContent("Sustain Level", "Intensity of material to Sustain for the amount of time defined by the sustain CC"),  true);
+        EditorGUILayout.PropertyField(serializedObject.FindProperty("MAX_STARTING_INDEX"),new GUIContent("Max Starting Offset", "Maximum starting offset for arrays of objects. If you aren't using arrays of objects, don't worry about this."),  true);
         EditorGUILayout.Space(); EditorGUILayout.Space();
 
         var header = new GUIStyle(EditorStyles.boldLabel);

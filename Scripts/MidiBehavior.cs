@@ -49,6 +49,7 @@ public class MidiBehavior : UdonSharpBehaviour
     private Color _updatedColor;
     private Color _initialColor = Color.black;
     private Color _currentColor = Color.black;
+    private Color[] _colorArray;
     private Renderer[] _childRenderers;
     private Renderer _Renderer;
     private bool _isArray;
@@ -92,6 +93,7 @@ public class MidiBehavior : UdonSharpBehaviour
         {
             _isArray = true;
             _childRenderers = transform.GetComponentsInChildren<Renderer>(true);
+            _colorArray = new Color[_childRenderers.Length];
             if (_usesAreaLit)
             {
                 _AreaLitChildRenderers = _areaListMesh.GetComponentsInChildren<Renderer>(true);
@@ -165,11 +167,15 @@ public class MidiBehavior : UdonSharpBehaviour
         {
             SendCustomEventDelayedSeconds(nameof(MidiOffEvent), _updateRate_Hz);
         }
+        else if (_offEventLock)
+        {
+            return;
+        }
         else
         {
             _offEventLock = true;
             _targetColorVec4 = new Vector4(Color.black.r, Color.black.g, Color.black.b, 0.0f);
-            _rgba_step = new Vector4(LerpStepSize(_color.r, Color.black.r, _release), LerpStepSize(_color.g, Color.black.g, _release), LerpStepSize(_color.b, Color.black.b, _release), LerpStepSize(_color.a, 0.0f, _release));
+            _rgba_step = new Vector4(LerpStepSize(_currentColor.r, Color.black.r, _release), LerpStepSize(_currentColor.g, Color.black.g, _release), LerpStepSize(_currentColor.b, Color.black.b, _release), LerpStepSize(_currentColor.a, 0.0f, _release));
             if (_isArray)
             {
                 UpdateArray();
@@ -231,8 +237,7 @@ public class MidiBehavior : UdonSharpBehaviour
     public void UpdateArray()
     {
         // TODO: Updating an array with an on/off event should _restart_ rather than continue
-        // Both locks existing implies that an ON event was received while an OFF event is executing
-        // Release the OFF event lock and 'convert' the OFF event to an ON event
+        // In MIDION, check for increasing or decreasing, increasing -> specifically go to ON event. decreasing -> specifically go to OFF event
         if (_onEventLock & _offEventLock)
         {
             _offEventLock = false;
@@ -243,6 +248,7 @@ public class MidiBehavior : UdonSharpBehaviour
         // Iterate through array as though it's circular if we decide to not start at 0 index
         for (int j = _arrayStart; j < _arrayStart + _childRenderers.Length; j++)
         {
+            // Only calculate update step for first index in array, store in array. More storage, less calculations
             int i = j % _childRenderers.Length;
             var block = new MaterialPropertyBlock();
             _childRenderers[i].GetPropertyBlock(block);
@@ -271,14 +277,28 @@ public class MidiBehavior : UdonSharpBehaviour
             }
             else
             {
-                _updatedColor = _UpdateColor(_currentColorVec4, _targetColorVec4, _rgba_step);
-                _UpdateRendererMaterialProperties(_childRenderers[i], block, _updatedColor);
-                _UpdateAreaLit(_usesAreaLit, _AreaLitChildRenderers[i], _updatedColor, targetIntensity);
+                if (i == _arrayStart)
+                {
+                    _updatedColor = _UpdateColor(_currentColorVec4, _targetColorVec4, _rgba_step);
+                    _colorArray[Mod((i + _iteration), _childRenderers.Length)] = _updatedColor;
+                }
+
+                if (!delaySequentialIndexes)
+                {
+                    _UpdateRendererMaterialProperties(_childRenderers[i], block, _colorArray[Mod((_arrayStart - _iteration), _childRenderers.Length)]);
+                    _UpdateAreaLit(_usesAreaLit, _AreaLitChildRenderers[i], _colorArray[Mod((_arrayStart - _iteration), _childRenderers.Length)], targetIntensity);
+                }
+                else
+                {
+                    _UpdateRendererMaterialProperties(_childRenderers[i], block, _colorArray[Mod((i - _iteration), _childRenderers.Length)]);
+                    _UpdateAreaLit(_usesAreaLit, _AreaLitChildRenderers[i], _colorArray[Mod((i - _iteration), _childRenderers.Length)], targetIntensity);
+                }
             }
         }
         _iteration++;
         SendCustomEventDelayedSeconds(nameof(UpdateArray), _updateRate_Hz);
     }
+
 
     /// <summary>
     /// Clamps a color to be within some defined boundary, also handles overshooting in either direction
@@ -372,13 +392,23 @@ public class MidiBehavior : UdonSharpBehaviour
     /// </summary>
     /// <param name="v1">First vector</param>
     /// <param name="v2">Second vector</param>
-    /// <returns></returns>
+    /// <returns>True if vectors are almost equal</returns>
     public bool Vec4AlmostEquals(Vector4 v1, Vector4 v2)
     {
 
         return (AlmostEquals(v1.x, v2.x) & AlmostEquals(v1.y, v2.y) & AlmostEquals(v1.z, v2.z) & AlmostEquals(v1.w, v2.w));
     }
 
+    /// <summary>
+    /// Determines if a Vec4 is decreasing, that is all components are less than or equal to the components of a target vector.
+    /// </summary>
+    /// <param name="v1">Vector to compare</param>
+    /// <param name="target">target vector to determine if decreasing</param>
+    /// <returns>True if Vector is decreasing</returns>
+    public bool Vec4IsDecreasing(Vector4 v1, Vector4 target)
+    {
+        return ((v1.x <= target.x) & (v1.y <= target.y) & (v1.z <= target.z) & (v1.w <= target.w));
+    }
     /// <summary>
     /// Checks to see if one float is almost equal to another float up to some precision value
     /// </summary>

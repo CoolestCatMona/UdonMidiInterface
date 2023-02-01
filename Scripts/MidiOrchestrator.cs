@@ -170,7 +170,7 @@ public class MidiOrchestrator : UdonSharpBehaviour
     private const float MAX_COLOR_VALUE = 1.0f;
     private const float MIN_COLOR_VALUE = 0.0f;
     private const float MAX_INTENSITY_MULT = 5.0f;
-    private int MAX_STARTING_INDEX; // TODO: Should be equal to the number of gameobjects in array, not behaviors, consider having this number set in editor?
+    [SerializeField] private int MAX_STARTING_INDEX = 1;
 
     /// <summary>
     /// Event that is triggered when the script is intialized. Some intial variables are calculated and set once, then sychronized across relevant UdonBehaviors
@@ -185,7 +185,6 @@ public class MidiOrchestrator : UdonSharpBehaviour
             buttonEvents[i].SetProgramVariable("_updateRate_Hz", _updateRate_Hz);
             buttonEvents[i].SetProgramVariable("indexOfBehavior", i);
         }
-        MAX_STARTING_INDEX = buttonEvents.Length;
         RequestSerialization();
     }
     /// <summary>
