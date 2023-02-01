@@ -170,7 +170,7 @@ public class MidiOrchestrator : UdonSharpBehaviour
     private const float MAX_COLOR_VALUE = 1.0f;
     private const float MIN_COLOR_VALUE = 0.0f;
     private const float MAX_INTENSITY_MULT = 5.0f;
-    private int MAX_STARTING_INDEX; // Should be equal to the number of gameobjects in array, not behaviors
+    private int MAX_STARTING_INDEX; // TODO: Should be equal to the number of gameobjects in array, not behaviors, consider having this number set in editor?
 
     /// <summary>
     /// Event that is triggered when the script is intialized. Some intial variables are calculated and set once, then sychronized across relevant UdonBehaviors
