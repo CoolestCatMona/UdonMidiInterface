@@ -50,11 +50,6 @@ public class MidiValueVisualizer : UdonSharpBehaviour
     public Text startIndexText;
     public Text modeText;
 
-    //MidiVisualizer.SetProgramVariable("startingArrayIndexOffset", _startingArrayIndexOffset);
-    //MidiVisualizer.SetProgramVariable("delaySequentialIndexes", _delaySequentialIndexes);
-    // MidiVisualizer.SetProgramVariable("useBehaviorIndex", _useBehaviorIndex);
-    // MidiVisualizer.SetProgramVariable("modeSelect", modeSelect);
-
     // Private Variables
     [HideInInspector, FieldChangeCallback(nameof(PadIndex))] public int _padIndex = -1;
 

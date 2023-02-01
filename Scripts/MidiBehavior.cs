@@ -49,7 +49,6 @@ public class MidiBehavior : UdonSharpBehaviour
     private Color _updatedColor;
     private Color _initialColor = Color.black;
     private Color _currentColor = Color.black;
-
     private Renderer[] _childRenderers;
     private Renderer _Renderer;
     private bool _isArray;
@@ -231,6 +230,7 @@ public class MidiBehavior : UdonSharpBehaviour
     /// </summary>
     public void UpdateArray()
     {
+        // TODO: Updating an array with an on/off event should _restart_ rather than continue
         // Both locks existing implies that an ON event was received while an OFF event is executing
         // Release the OFF event lock and 'convert' the OFF event to an ON event
         if (_onEventLock & _offEventLock)
@@ -239,9 +239,11 @@ public class MidiBehavior : UdonSharpBehaviour
             _targetColorVec4 = new Vector4(_color.r, _color.g, _color.b, _color.a);
             _rgba_step = new Vector4(LerpStepSize(_currentColor.r, _color.r, _attack), LerpStepSize(_currentColor.g, _color.g, _attack), LerpStepSize(_currentColor.b, _color.b, _attack), LerpStepSize(_currentColor.a, _color.a, _attack));
         }
+
+        // Iterate through array as though it's circular if we decide to not start at 0 index
         for (int j = _arrayStart; j < _arrayStart + _childRenderers.Length; j++)
         {
-            int i = j % _childRenderers.Length; // Current index for circular array
+            int i = j % _childRenderers.Length;
             var block = new MaterialPropertyBlock();
             _childRenderers[i].GetPropertyBlock(block);
             _currentColor = block.GetColor(_Color);
@@ -251,6 +253,7 @@ public class MidiBehavior : UdonSharpBehaviour
             {
                 continue;
             }
+
             if (Vec4AlmostEquals(_currentColorVec4, _targetColorVec4))
             {
                 Color _targetColor = new Color(_targetColorVec4.x, _targetColorVec4.y, _targetColorVec4.z, _targetColorVec4.w);
@@ -421,6 +424,12 @@ public class MidiBehavior : UdonSharpBehaviour
         block.SetColor(_Color, col);
         renderer.SetPropertyBlock(block);
     }
+
+    /// <summary>
+    /// Because we iterate through array in a circular manner, we may decide to not start at index 0. In such a case, we determine the starting index based off the assigned offset.
+    /// Furthermode, if an option to offset by behavior index is also supplied, the starting index is also offset by that amount.
+    /// </summary>
+    /// <returns>Starting index of circular array for this behavior</returns>
     private int GetStartingIndex()
     {
         int startingIndex;
@@ -434,14 +443,35 @@ public class MidiBehavior : UdonSharpBehaviour
         }
         return startingIndex;
     }
+
+    /// <summary>
+    /// Gets next index in circular array. (Last index points to first index)
+    /// </summary>
+    /// <param name="a">Array</param>
+    /// <param name="index">Index</param>
+    /// <returns>Index of next item in circular array</returns>
     private int NextIndex(Array a, int index)
     {
         return index + 1 % a.Length;
     }
+
+    /// <summary>
+    /// Gets previous index in circular array. (First index points to last index)
+    /// </summary>
+    /// <param name="a">Array</param>
+    /// <param name="index">Index</param>
+    /// <returns>Index of previous item in circular array</returns>
     private int PreviousIndex(Array a, int index)
     {
         return (index + a.Length - 1) % a.Length;
     }
+
+    /// <summary>
+    /// Custom modulo function that is able to handle negative numbers.
+    /// </summary>
+    /// <param name="a">an integer</param>
+    /// <param name="b">an integer</param>
+    /// <returns>a mod b</returns>
     private int Mod(int a, int b)
     {
         return ((a % b) + b) % b;

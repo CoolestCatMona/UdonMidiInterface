@@ -107,7 +107,7 @@ public class MidiOrchestrator : UdonSharpBehaviour
     private float _intensityMult = 0.0f;
 
     [UdonSynced]
-    private int _startingArrayIndexOffset = 0;
+    private int _startingArrayIndexOffset = -1;
     [UdonSynced]
     private bool _delaySequentialIndexes = true; // Having an index offset implies that sequential indexes SHOULD be delayed
     [UdonSynced]
@@ -741,11 +741,12 @@ public class MidiOrchestrator : UdonSharpBehaviour
         float H, S, V;
         Color.RGBToHSV(new Color(_r, _g, _b, MAX_COLOR_VALUE), out H, out S, out V);
         float _colorChange = (H + hueShiftAmnt) % MAX_COLOR_VALUE;
-        // float _colorChange = (float)Math.Round((double)(H + (MAX_COLOR_VALUE - hueShiftAmnt)), 2);
-        // if (_colorChange > MAX_COLOR_VALUE)
-        //     _colorChange -= MAX_COLOR_VALUE;
         _color = Color.HSVToRGB(_colorChange, S, V);
     }
+    /// <summary>
+    /// Switches modes for handling specific settings. Different values have different effects
+    /// </summary>
+    /// <param name="modeSelection">Mode Selection</param>
     public void HandleModeSwitch(int modeSelection)
     {
         switch (modeSelection)
