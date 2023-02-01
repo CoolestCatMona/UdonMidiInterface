@@ -26,7 +26,11 @@ public class MidiBehavior : UdonSharpBehaviour
     [HideInInspector] public float _release = 1.0f;
     [HideInInspector] public float _updateRate_s = 1.0f;
     [HideInInspector] public float _updateRate_Hz = 1.0f;
-    [HideInInspector] public int indexOfBehavior;
+    [HideInInspector] public int indexOfBehavior = -1;
+    [HideInInspector] public int startingArrayIndexOffset = 0;
+    [HideInInspector] public bool delaySequentialIndexes = true;
+    [HideInInspector] public bool useBehaviorIndex = false;
+
 
     // AreaLit specific settings
     [SerializeField] private int _thirdPartySelectionIndex = 0;
@@ -54,6 +58,8 @@ public class MidiBehavior : UdonSharpBehaviour
     private bool _offEventLock = false;
     private int _numChildren;
     private int _iteration = 0;
+    private int _arrayStart;
+    private int _arrayStop;
 
     // PropertyIDs
     private int _EmissionColor;
@@ -63,6 +69,7 @@ public class MidiBehavior : UdonSharpBehaviour
     // Magic Numbers
     private float MAX_COLOR_VALUE = 1.0f;
     private float MIN_COLOR_VALUE = 0.0f;
+
 
     /// <summary>
     /// https://docs.unity3d.com/ScriptReference/Shader.PropertyToID.html
@@ -90,6 +97,10 @@ public class MidiBehavior : UdonSharpBehaviour
             {
                 _AreaLitChildRenderers = _areaListMesh.GetComponentsInChildren<Renderer>(true);
 
+            }
+            else
+            {
+                _AreaLitChildRenderers = new Renderer[_childRenderers.Length]; // Dummy Array
             }
             for (int i = 0; i < _childRenderers.Length; i++)
             {
@@ -133,6 +144,8 @@ public class MidiBehavior : UdonSharpBehaviour
 
         if (_isArray)
         {
+            _arrayStart = GetStartingIndex();
+            _arrayStop = PreviousIndex(_childRenderers, _arrayStart);
             UpdateArray();
         }
         else
@@ -174,6 +187,7 @@ public class MidiBehavior : UdonSharpBehaviour
     /// </summary>
     public void UpdateSingle()
     {
+        // TODO: Modify UpdateSingle() such that it looks at an array. If single element, index will always be zero, otherwise keep track of array index?
         // Both locks existing implies that an ON event was received while an OFF event is executing
         // Release the OFF event lock and 'convert' the OFF event to an ON event
         if (_onEventLock & _offEventLock)
@@ -225,15 +239,15 @@ public class MidiBehavior : UdonSharpBehaviour
             _targetColorVec4 = new Vector4(_color.r, _color.g, _color.b, _color.a);
             _rgba_step = new Vector4(LerpStepSize(_currentColor.r, _color.r, _attack), LerpStepSize(_currentColor.g, _color.g, _attack), LerpStepSize(_currentColor.b, _color.b, _attack), LerpStepSize(_currentColor.a, _color.a, _attack));
         }
-        for (int i = 0; i < _childRenderers.Length; i++)
+        for (int j = _arrayStart; j < _arrayStart + _childRenderers.Length; j++)
         {
+            int i = j % _childRenderers.Length; // Current index for circular array
             var block = new MaterialPropertyBlock();
             _childRenderers[i].GetPropertyBlock(block);
             _currentColor = block.GetColor(_Color);
             Vector4 _currentColorVec4 = new Vector4((float)Math.Round((double)_currentColor.r, 3), (float)Math.Round((double)_currentColor.g, 3), (float)Math.Round((double)_currentColor.b, 3), (float)Math.Round((double)_currentColor.a, 3));
 
-            // Do not update each renderer at the same time, updates should be offset by at least one iteration
-            if (_iteration - i < 0)
+            if (delaySequentialIndexes & _iteration - Mod(i - _arrayStart, _childRenderers.Length) < 0)
             {
                 continue;
             }
@@ -243,7 +257,7 @@ public class MidiBehavior : UdonSharpBehaviour
                 _UpdateRendererMaterialProperties(_childRenderers[i], block, _targetColor);
                 _UpdateAreaLit(_usesAreaLit, _AreaLitChildRenderers[i], _targetColor, targetIntensity);
 
-                if (i == _numChildren - 1)
+                if (i == _arrayStop)
                 {
                     _onEventLock = false;
                     _offEventLock = false;
@@ -406,5 +420,30 @@ public class MidiBehavior : UdonSharpBehaviour
         block.SetColor(_EmissionColor, col);
         block.SetColor(_Color, col);
         renderer.SetPropertyBlock(block);
+    }
+    private int GetStartingIndex()
+    {
+        int startingIndex;
+        if (useBehaviorIndex)
+        {
+            startingIndex = (indexOfBehavior + startingArrayIndexOffset + _childRenderers.Length) % _childRenderers.Length;
+        }
+        else
+        {
+            startingIndex = (startingArrayIndexOffset + _childRenderers.Length) % _childRenderers.Length;
+        }
+        return startingIndex;
+    }
+    private int NextIndex(Array a, int index)
+    {
+        return index + 1 % a.Length;
+    }
+    private int PreviousIndex(Array a, int index)
+    {
+        return (index + a.Length - 1) % a.Length;
+    }
+    private int Mod(int a, int b)
+    {
+        return ((a % b) + b) % b;
     }
 }

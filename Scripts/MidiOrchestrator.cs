@@ -60,7 +60,8 @@ public class MidiOrchestrator : UdonSharpBehaviour
     private float _updateRate_Hz;
     private int _noteValue;
     private int _padIndex;
-
+    private string modeSelect = "NONE";
+    private int _mode = 0;
     /// <summary>
     /// Synchronized Color (RGBA) for materials.
     /// </summary>
@@ -105,6 +106,13 @@ public class MidiOrchestrator : UdonSharpBehaviour
     [UdonSynced]
     private float _intensityMult = 0.0f;
 
+    [UdonSynced]
+    private int _startingArrayIndexOffset = 0;
+    [UdonSynced]
+    private bool _delaySequentialIndexes = true; // Having an index offset implies that sequential indexes SHOULD be delayed
+    [UdonSynced]
+    private bool _useBehaviorIndex = false;
+
     /// <summary>
     /// Numbers corresponding to CC on a MIDI controller.
     /// </summary>
@@ -117,6 +125,8 @@ public class MidiOrchestrator : UdonSharpBehaviour
     [SerializeField] private int SUSTAIN = 19;
     [SerializeField] private int RELEASE = 16;
     [SerializeField] private int INTENSITYMULT = 77;
+    [SerializeField] private int START_INDEX = 93;
+    [SerializeField] private int MODE = 73;
 
     // When using pads, these values correspond to decrementing a value
     [SerializeField] private int RED_DEC = 0;
@@ -128,6 +138,8 @@ public class MidiOrchestrator : UdonSharpBehaviour
     [SerializeField] private int SUSTAIN_DEC = 0;
     [SerializeField] private int RELEASE_DEC = 0;
     [SerializeField] private int INTENSITYMULT_DEC = 0;
+    [SerializeField] private int START_INDEX_DEC = 0;
+    [SerializeField] private int MODE_DEC = 0;
 
 
     /// <summary>
@@ -158,6 +170,7 @@ public class MidiOrchestrator : UdonSharpBehaviour
     private const float MAX_COLOR_VALUE = 1.0f;
     private const float MIN_COLOR_VALUE = 0.0f;
     private const float MAX_INTENSITY_MULT = 5.0f;
+    private int MAX_STARTING_INDEX; // Should be equal to the number of gameobjects in array, not behaviors
 
     /// <summary>
     /// Event that is triggered when the script is intialized. Some intial variables are calculated and set once, then sychronized across relevant UdonBehaviors
@@ -172,6 +185,7 @@ public class MidiOrchestrator : UdonSharpBehaviour
             buttonEvents[i].SetProgramVariable("_updateRate_Hz", _updateRate_Hz);
             buttonEvents[i].SetProgramVariable("indexOfBehavior", i);
         }
+        MAX_STARTING_INDEX = buttonEvents.Length;
         RequestSerialization();
     }
     /// <summary>
@@ -187,6 +201,9 @@ public class MidiOrchestrator : UdonSharpBehaviour
             buttonEvent.SetProgramVariable("_sustain", _sustain);
             buttonEvent.SetProgramVariable("_release", _release);
             buttonEvent.SetProgramVariable("_intensityMult", _intensityMult);
+            buttonEvent.SetProgramVariable("startingArrayIndexOffset", _startingArrayIndexOffset);
+            buttonEvent.SetProgramVariable("delaySequentialIndexes", _delaySequentialIndexes);
+            buttonEvent.SetProgramVariable("useBehaviorIndex", _useBehaviorIndex);
         }
     }
 
@@ -216,6 +233,9 @@ public class MidiOrchestrator : UdonSharpBehaviour
                 buttonEvent.SetProgramVariable("_sustain", _sustain);
                 buttonEvent.SetProgramVariable("_release", _release);
                 buttonEvent.SetProgramVariable("_intensityMult", _intensityMult);
+                buttonEvent.SetProgramVariable("startingArrayIndexOffset", _startingArrayIndexOffset);
+                buttonEvent.SetProgramVariable("delaySequentialIndexes", _delaySequentialIndexes);
+                buttonEvent.SetProgramVariable("useBehaviorIndex", _useBehaviorIndex);
             }
         }
     }
@@ -507,6 +527,19 @@ public class MidiOrchestrator : UdonSharpBehaviour
         {
             _intensityMult = value_nrm * MAX_INTENSITY_MULT;
         }
+        else if (number == START_INDEX)
+        {
+            // Having a starting index implies that there should be a delay
+
+            _startingArrayIndexOffset = (int)((value_nrm * (float)MAX_STARTING_INDEX) - 1.0f);
+            _delaySequentialIndexes = _startingArrayIndexOffset == -1 ? false : true;
+        }
+        else if (number == MODE)
+        {
+            int mode_nrm;
+            mode_nrm = (int)(value_nrm * 4.0f);
+            HandleModeSwitch(mode_nrm);
+        }
         else
         {
             Debug.Log($@"Invalid CC of {number}");
@@ -520,6 +553,9 @@ public class MidiOrchestrator : UdonSharpBehaviour
             buttonEvent.SetProgramVariable("_sustain", _sustain);
             buttonEvent.SetProgramVariable("_release", _release);
             buttonEvent.SetProgramVariable("_intensityMult", _intensityMult);
+            buttonEvent.SetProgramVariable("startingArrayIndexOffset", _startingArrayIndexOffset);
+            buttonEvent.SetProgramVariable("delaySequentialIndexes", _delaySequentialIndexes);
+            buttonEvent.SetProgramVariable("useBehaviorIndex", _useBehaviorIndex);
         }
 
         if (usesVisualizer)
@@ -534,6 +570,9 @@ public class MidiOrchestrator : UdonSharpBehaviour
             MidiVisualizer.SetProgramVariable("_sustain", _sustain);
             MidiVisualizer.SetProgramVariable("_release", _release);
             MidiVisualizer.SetProgramVariable("_intensityMult", _intensityMult);
+            MidiVisualizer.SetProgramVariable("startingArrayIndexOffset", _startingArrayIndexOffset);
+            MidiVisualizer.SetProgramVariable("modeSelect", modeSelect);
+
         }
 
         RequestSerialization();
@@ -636,6 +675,26 @@ public class MidiOrchestrator : UdonSharpBehaviour
         {
             _intensityMult = _intensityMult <= 0.0f ? 0.0f : (_intensityMult - padCCChangeAmnt) * MAX_INTENSITY_MULT;
         }
+        else if (note == START_INDEX)
+        {
+            _startingArrayIndexOffset = _startingArrayIndexOffset >= MAX_STARTING_INDEX ? MAX_STARTING_INDEX : _startingArrayIndexOffset + 1;
+            _delaySequentialIndexes = _startingArrayIndexOffset == -1 ? false : true;
+        }
+        else if (note == START_INDEX_DEC)
+        {
+            _startingArrayIndexOffset = _startingArrayIndexOffset <= 0 ? 0 : _startingArrayIndexOffset - 1;
+            _delaySequentialIndexes = _startingArrayIndexOffset == -1 ? false : true;
+        }
+        else if (note == MODE)
+        {
+            _mode = _mode >= 4 ? 4 : _mode + 1;
+            HandleModeSwitch(_mode);
+        }
+        else if (note == MODE_DEC)
+        {
+            _mode = _mode <= 0 ? 0 : _mode - 1;
+            HandleModeSwitch(_mode);
+        }
         else
         {
             Debug.Log("Invalid Pad");
@@ -649,6 +708,9 @@ public class MidiOrchestrator : UdonSharpBehaviour
             buttonEvent.SetProgramVariable("_sustain", _sustain);
             buttonEvent.SetProgramVariable("_release", _release);
             buttonEvent.SetProgramVariable("_intensityMult", _intensityMult);
+            buttonEvent.SetProgramVariable("startingArrayIndexOffset", _startingArrayIndexOffset);
+            buttonEvent.SetProgramVariable("delaySequentialIndexes", _delaySequentialIndexes);
+            buttonEvent.SetProgramVariable("useBehaviorIndex", _useBehaviorIndex);
         }
 
         if (usesVisualizer)
@@ -663,6 +725,9 @@ public class MidiOrchestrator : UdonSharpBehaviour
             MidiVisualizer.SetProgramVariable("_sustain", _sustain);
             MidiVisualizer.SetProgramVariable("_release", _release);
             MidiVisualizer.SetProgramVariable("_intensityMult", _intensityMult);
+            MidiVisualizer.SetProgramVariable("startingArrayIndexOffset", _startingArrayIndexOffset);
+            MidiVisualizer.SetProgramVariable("modeSelect", modeSelect);
+
         }
 
         RequestSerialization();
@@ -675,9 +740,28 @@ public class MidiOrchestrator : UdonSharpBehaviour
     {
         float H, S, V;
         Color.RGBToHSV(new Color(_r, _g, _b, MAX_COLOR_VALUE), out H, out S, out V);
-        float _colorChange = (float)Math.Round((double)(H + (MAX_COLOR_VALUE - hueShiftAmnt)), 2);
-        if (_colorChange > MAX_COLOR_VALUE)
-            _colorChange -= MAX_COLOR_VALUE;
+        float _colorChange = (H + hueShiftAmnt) % MAX_COLOR_VALUE;
+        // float _colorChange = (float)Math.Round((double)(H + (MAX_COLOR_VALUE - hueShiftAmnt)), 2);
+        // if (_colorChange > MAX_COLOR_VALUE)
+        //     _colorChange -= MAX_COLOR_VALUE;
         _color = Color.HSVToRGB(_colorChange, S, V);
+    }
+    public void HandleModeSwitch(int modeSelection)
+    {
+        switch (modeSelection)
+        {
+            case 0:
+                modeSelect = "NONE";
+                _useBehaviorIndex = false;
+                break;
+            case 1:
+                modeSelect = "SKIP";
+                _useBehaviorIndex = true;
+                break;
+            default:
+                modeSelect = "UNIMP";
+                _useBehaviorIndex = false;
+                break;
+        }
     }
 }
