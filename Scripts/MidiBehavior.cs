@@ -155,7 +155,6 @@ public class MidiBehavior : UdonSharpBehaviour
         // Target color is always the same, essentially freezes the color value at the time of the ON event.
         _towardsColorVec4 = new Vector4(_color.r, _color.g, _color.b, 1.0f);
 
-        // Initial color -> color to step FROM - may be different for arrays, unfortunately.
         // AreaLit intensity stays the same in arrays.
         targetIntensity = (float)Math.Pow(2.0, (double)_intensityMult);
 
@@ -281,7 +280,6 @@ public class MidiBehavior : UdonSharpBehaviour
             _offEventLock = false;
             return;
         }
-
         bool objectUpdateCompleted = UpdateObject(_Renderer, _AreaLitRenderer, _awayColorVec4, _step_away[0]);
         if (objectUpdateCompleted)
         {
@@ -335,7 +333,7 @@ public class MidiBehavior : UdonSharpBehaviour
     /// </summary>
     public void FinalArrayUpdateAway()
     {
-        if (_specialOffIteration == _specialArrayStop)
+        if (_specialOffIteration - Mod(_arrayStop - finalUpdateStartIndex, _numRenderers) > 0)
         {
             _specialOffIteration = 0;
             return;
@@ -343,11 +341,27 @@ public class MidiBehavior : UdonSharpBehaviour
         for (int j = finalUpdateStartIndex; j < finalUpdateStartIndex + _numRenderers; j++)
         {
             int i = j % _numRenderers;
-            if ((_specialRenderers[i] == null) | (delaySequentialIndexes & _specialOffIteration - Mod(i - finalUpdateStartIndex, _numRenderers) < 0))
+            int offset = i - _arrayStart;
+            int totalOffset = Math.Abs(finalUpdateStartIndex - _arrayStart);
+            bool maxIterationsReachedForRenderer = _specialOffIteration >= Math.Abs(offset);
+            bool waitToUpdate = _specialOffIteration - Mod(offset, _numRenderers) < (-1 * totalOffset);
+            if ((_specialRenderers[i] == null) ||
+                (delaySequentialIndexes && maxIterationsReachedForRenderer) ||
+                (delaySequentialIndexes && waitToUpdate))
             {
                 continue;
             }
-            bool objectUpdateCompleted = UpdateObject(_specialRenderers[i], _AreaLitChildRenderers[i], _awayColorVec4, _step_away[i]);
+            // Should do nothing if.. (we are already at the color?)
+            var block = new MaterialPropertyBlock();
+            _specialRenderers[i].GetPropertyBlock(block);
+            Color objectColor = block.GetColor(_Color);
+            Vector4 _currentColorVec4 = new Vector4(objectColor.r, objectColor.g, objectColor.b, objectColor.a);
+            if (!Vec4AlmostEquals(_currentColorVec4, _awayColorVec4))
+            {
+                _updatedColor = _UpdateColor(_currentColorVec4, _awayColorVec4, _step_away[i]);
+                _UpdateRendererMaterialProperties(_specialRenderers[i], block, _updatedColor);
+                _UpdateAreaLit(_usesAreaLit, _AreaLitChildRenderers[i], _updatedColor, targetIntensity);
+            }
         }
         _specialOffIteration++;
         SendCustomEventDelayedSeconds(nameof(FinalArrayUpdateAway), _updateRate_Hz);
@@ -368,11 +382,13 @@ public class MidiBehavior : UdonSharpBehaviour
     {
         if (_onEventLock & _offEventLock)
         {
-            _specialOffIteration = 0;
-            finalUpdateStartIndex = Mod((_arrayStart + _offIteration), _numRenderers);
-            _specialArrayStop = PreviousIndex(_childRenderers, _arrayStart) > finalUpdateStartIndex ? _arrayStart - finalUpdateStartIndex : (_numRenderers - finalUpdateStartIndex - 1) + _arrayStart;
-            _specialRenderers = SliceArray(_childRenderers, _arrayStart, finalUpdateStartIndex);
-            FinalArrayUpdateAway();
+            if (delaySequentialIndexes)
+            {
+                _specialOffIteration = 0;
+                finalUpdateStartIndex = Mod((_arrayStart + _offIteration), _numRenderers);
+                _specialRenderers = SliceArray(_childRenderers, finalUpdateStartIndex, _arrayStop);
+                FinalArrayUpdateAway();
+            }
             _offEventLock = false;
             _offIteration = 0;
             return;
@@ -512,7 +528,7 @@ public class MidiBehavior : UdonSharpBehaviour
     /// <param name="float2">Second float</param>
     /// <param name="precision">Precision, a precision of 2 checks up to two decimal places. Default 2</param>
     /// <returns></returns>
-    public bool AlmostEquals(float float1, float float2, int precision = 2)
+    public bool AlmostEquals(float float1, float float2, int precision = 3)
     {
         float epsilon = (float)Math.Pow(10.0f, -precision);
         return (Math.Abs(float1 - float2) <= epsilon);
@@ -665,32 +681,29 @@ public class MidiBehavior : UdonSharpBehaviour
     /// Generates a slice of an array containing the indexes from [0:i] [i+n % len]. Remaining values are filled with NULL
     /// </summary>
     /// <param name="array">An array to take a slice from</param>
-    /// <param name="i"></param>
-    /// <param name="n"></param>
+    /// <param name="start"></param>
+    /// <param name="stop"></param>
     /// <returns></returns>
-    private Renderer[] SliceArray(Renderer[] array, int i, int n)
+    private Renderer[] SliceArray(Renderer[] array, int start, int stop)
     {
         int len = array.Length;
         Renderer[] result = new Renderer[len];
-        if (n > i)
+        int count;
+
+        // If stop index after start index, just copy array from start to count
+        if (stop >= start)
         {
-            int count = Math.Min(len, n - i + 1);
-            Array.Copy(array, i, result, 0, count);
-            for (int j = count; j < len; j++)
-            {
-                result[j] = null;
-            }
+            count = stop - start + 1;
+            Array.Copy(array, start, result, start, count);
         }
+        // Otherwise, copy from start to len, and 0 to stop
         else
         {
-            Array.Copy(array, 0, result, 0, i);
-            for (int j = i; j < i + n; j++)
-            {
-                result[j] = null;
-            }
-            Array.Copy(array, i + n, result, i + n, len - (i + n));
+            Array.Copy(array, start, result, start, len - start);
+            Array.Copy(array, 0, result, 0, stop + 1);
         }
 
         return result;
+
     }
 }
