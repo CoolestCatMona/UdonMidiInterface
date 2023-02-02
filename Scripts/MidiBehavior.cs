@@ -51,21 +51,25 @@ public class MidiBehavior : UdonSharpBehaviour
     private Color _initialColor = Color.black;
     private Color[] _startColor;
     private Color _currentColor = Color.black;
-    private Color[] _colorArray;
+    private Color[] _colorArray; // Not implemented, but can be for computational optimization
     private Renderer[] _childRenderers;
+    private Renderer[] _specialRenderers;
     private Renderer _Renderer;
     private bool _isArray;
-    private Vector4 _rgba_step;
-    // Step Towards & Away
     private Vector4[] _step_towards;
     private Vector4[] _step_away;
-    //
     private bool _onEventLock = false;
     private bool _offEventLock = false;
     private int _numRenderers;
-    private int _iteration = 0;
+    private int _onIteration = 0;
+    private int _offIteration = 0;
+    private int _specialOnIteration = 0;
+    private int _specialOffIteration = 0;
     private int _arrayStart;
     private int _arrayStop;
+    private int _specialArrayStop;
+    int finalUpdateStartIndex;
+
 
     // PropertyIDs
     private int _EmissionColor;
@@ -213,6 +217,14 @@ public class MidiBehavior : UdonSharpBehaviour
         }
     }
 
+    /// <summary>
+    /// Updates a single game object's MaterialPropertyBlock, moving some step towards a target color
+    /// </summary>
+    /// <param name="renderer">Renderer to modify</param>
+    /// <param name="areaLitRenderer">AreaLitRenderer, if there is one</param>
+    /// <param name="targetColorVec4">Target color</param>
+    /// <param name="step">Step size</param>
+    /// <returns>If the renderer's color is at the target color</returns>
     public bool UpdateObject(Renderer renderer, Renderer areaLitRenderer, Vector4 targetColorVec4, Vector4 step)
     {
         bool updateCompleted = false;
@@ -242,7 +254,7 @@ public class MidiBehavior : UdonSharpBehaviour
     /// </summary>
     public void UpdateRendererTowardsColor()
     {
-        // Because ON events may interrupt each other, one may release the lock early.
+        // Because ON events may interrupt each other, one may release the lock early. Investigate if method should steal lock.
         if (!_onEventLock)
         {
             return;
@@ -259,6 +271,9 @@ public class MidiBehavior : UdonSharpBehaviour
             SendCustomEventDelayedSeconds(nameof(UpdateRendererTowardsColor), _updateRate_Hz);
         }
     }
+    /// <summary>
+    /// Recursively updates a single game object's MaterialPropertyBlock until it reaches some target color.
+    /// </summary>
     public void UpdateRendererAwayFromColor()
     {
         if (_onEventLock & _offEventLock)
@@ -279,82 +294,114 @@ public class MidiBehavior : UdonSharpBehaviour
         }
     }
 
+    /// <summary>
+    /// Recursively steps through colors in an array from a starting color towards a target color
+    /// </summary>
     public void UpdateArrayTowardsColor()
     {
-
-    }
-    public void UpdateArrayAwayFromColor()
-    {
-
-    }
-    /// <summary>
-    /// Recursively updates an array of GameObject's MaterialPropertyBlocks until they all reach some target color.
-    /// </summary>
-    public void UpdateArray()
-    {
-        // TODO: Updating an array with an on/off event should _restart_ rather than continue
-        // In MIDION, check for increasing or decreasing, increasing -> specifically go to ON event. decreasing -> specifically go to OFF event
-        if (_onEventLock & _offEventLock)
+        // Should be able to interrupt itself if updating, one last update for current iteration, then release.
+        if (!_onEventLock)
         {
-            _offEventLock = false;
-            _towardsColorVec4 = new Vector4(_color.r, _color.g, _color.b, _color.a);
-            _rgba_step = new Vector4(LerpStepSize(_currentColor.r, _color.r, _attack), LerpStepSize(_currentColor.g, _color.g, _attack), LerpStepSize(_currentColor.b, _color.b, _attack), LerpStepSize(_currentColor.a, _color.a, _attack));
+            return;
         }
 
-        // Iterate through array as though it's circular if we decide to not start at 0 index
         for (int j = _arrayStart; j < _arrayStart + _numRenderers; j++)
         {
-            // Only calculate update step for first index in array, store in array. More storage, less calculations
+            // TODO: Only calculate update step for first index in array, store in array. More storage, less calculations
             int i = j % _numRenderers;
-            var block = new MaterialPropertyBlock();
-            _childRenderers[i].GetPropertyBlock(block);
-            _currentColor = block.GetColor(_Color);
-            Vector4 _currentColorVec4 = new Vector4((float)Math.Round((double)_currentColor.r, 3), (float)Math.Round((double)_currentColor.g, 3), (float)Math.Round((double)_currentColor.b, 3), (float)Math.Round((double)_currentColor.a, 3));
 
-            if (delaySequentialIndexes & _iteration - Mod(i - _arrayStart, _numRenderers) < 0)
+            if (delaySequentialIndexes & _onIteration - Mod(i - _arrayStart, _numRenderers) < 0)
             {
                 continue;
             }
 
-            if (Vec4AlmostEquals(_currentColorVec4, _towardsColorVec4))
+            bool objectUpdateCompleted = UpdateObject(_childRenderers[i], _AreaLitChildRenderers[i], _towardsColorVec4, _step_towards[i]);
+            if (objectUpdateCompleted)
             {
-                Color _targetColor = new Color(_towardsColorVec4.x, _towardsColorVec4.y, _towardsColorVec4.z, _towardsColorVec4.w);
-                _UpdateRendererMaterialProperties(_childRenderers[i], block, _targetColor);
-                _UpdateAreaLit(_usesAreaLit, _AreaLitChildRenderers[i], _targetColor, targetIntensity);
-
                 if (i == _arrayStop)
                 {
                     _onEventLock = false;
-                    _offEventLock = false;
-                    _iteration = 0;
-                    _initialColor = block.GetColor(_Color);
+                    _onIteration = 0;
                     return;
                 }
             }
-            else
-            {
-                if (i == _arrayStart)
-                {
-                    _updatedColor = _UpdateColor(_currentColorVec4, _towardsColorVec4, _rgba_step);
-                    _colorArray[Mod((i + _iteration), _numRenderers)] = _updatedColor;
-                }
+        }
+        _onIteration++;
+        SendCustomEventDelayedSeconds(nameof(UpdateArrayTowardsColor), _updateRate_Hz);
+    }
 
-                if (!delaySequentialIndexes)
+    /// <summary>
+    /// When an ON button press is received, the current 'Away' update should finish one round of its execution
+    /// </summary>
+    public void FinalArrayUpdateAway()
+    {
+        if (_specialOffIteration == _specialArrayStop)
+        {
+            _specialOffIteration = 0;
+            return;
+        }
+        for (int j = finalUpdateStartIndex; j < finalUpdateStartIndex + _numRenderers; j++)
+        {
+            int i = j % _numRenderers;
+            if ((_specialRenderers[i] == null) | (delaySequentialIndexes & _specialOffIteration - Mod(i - finalUpdateStartIndex, _numRenderers) < 0))
+            {
+                continue;
+            }
+            bool objectUpdateCompleted = UpdateObject(_specialRenderers[i], _AreaLitChildRenderers[i], _awayColorVec4, _step_away[i]);
+        }
+        _specialOffIteration++;
+        SendCustomEventDelayedSeconds(nameof(FinalArrayUpdateAway), _updateRate_Hz);
+    }
+
+    /// <summary>
+    /// TODO, in the case of an ON event, the current iteration(s) should finish until it reaches the end index of the array.
+    /// </summary>
+    public void FinalArrayUpdateTowards()
+    {
+        SendCustomEventDelayedSeconds(nameof(FinalArrayUpdateTowards), _updateRate_Hz);
+    }
+
+    /// <summary>
+    /// Recursively steps through colors in an array away from a starting color towards a target color
+    /// </summary>
+    public void UpdateArrayAwayFromColor()
+    {
+        if (_onEventLock & _offEventLock)
+        {
+            _specialOffIteration = 0;
+            finalUpdateStartIndex = Mod((_arrayStart + _offIteration), _numRenderers);
+            _specialArrayStop = PreviousIndex(_childRenderers, _arrayStart) > finalUpdateStartIndex ? _arrayStart - finalUpdateStartIndex : (_numRenderers - finalUpdateStartIndex - 1) + _arrayStart;
+            _specialRenderers = SliceArray(_childRenderers, _arrayStart, finalUpdateStartIndex);
+            FinalArrayUpdateAway();
+            _offEventLock = false;
+            _offIteration = 0;
+            return;
+        }
+        // Iterate through array as though it's circular if we decide to not start at 0 index
+        for (int j = _arrayStart; j < _arrayStart + _numRenderers; j++)
+        {
+            // TODO: Only calculate update step for first index in array, store in array. More storage, less calculations
+            int i = j % _numRenderers;
+
+            if (delaySequentialIndexes & _offIteration - Mod(i - _arrayStart, _numRenderers) < 0)
+            {
+                continue;
+            }
+
+            bool objectUpdateCompleted = UpdateObject(_childRenderers[i], _AreaLitChildRenderers[i], _awayColorVec4, _step_away[i]);
+            if (objectUpdateCompleted)
+            {
+                if (i == _arrayStop)
                 {
-                    _UpdateRendererMaterialProperties(_childRenderers[i], block, _colorArray[Mod((_arrayStart - _iteration), _numRenderers)]);
-                    _UpdateAreaLit(_usesAreaLit, _AreaLitChildRenderers[i], _colorArray[Mod((_arrayStart - _iteration), _numRenderers)], targetIntensity);
-                }
-                else
-                {
-                    _UpdateRendererMaterialProperties(_childRenderers[i], block, _colorArray[Mod((i - _iteration), _numRenderers)]);
-                    _UpdateAreaLit(_usesAreaLit, _AreaLitChildRenderers[i], _colorArray[Mod((i - _iteration), _numRenderers)], targetIntensity);
+                    _offEventLock = false;
+                    _offIteration = 0;
+                    return;
                 }
             }
         }
-        _iteration++;
-        SendCustomEventDelayedSeconds(nameof(UpdateArray), _updateRate_Hz);
+        _offIteration++;
+        SendCustomEventDelayedSeconds(nameof(UpdateArrayAwayFromColor), _updateRate_Hz);
     }
-
 
     /// <summary>
     /// Clamps a color to be within some defined boundary, also handles overshooting in either direction
@@ -445,7 +492,6 @@ public class MidiBehavior : UdonSharpBehaviour
     /// <returns>True if vectors are almost equal</returns>
     public bool Vec4AlmostEquals(Vector4 v1, Vector4 v2)
     {
-
         return (AlmostEquals(v1.x, v2.x) & AlmostEquals(v1.y, v2.y) & AlmostEquals(v1.z, v2.z) & AlmostEquals(v1.w, v2.w));
     }
 
@@ -565,6 +611,10 @@ public class MidiBehavior : UdonSharpBehaviour
             _startColor[i] = block.GetColor(_Color);
         }
     }
+    /// <summary>
+    /// Genereates step sizes for towards and away from a color for each renderer.
+    /// </summary>
+    /// <param name="towards">the step size is towards a color or away from a color</param>
     private void SetStepSizes(bool towards)
     {
         if (_isArray)
@@ -609,5 +659,38 @@ public class MidiBehavior : UdonSharpBehaviour
             }
         }
 
+
+    }
+    /// <summary>
+    /// Generates a slice of an array containing the indexes from [0:i] [i+n % len]. Remaining values are filled with NULL
+    /// </summary>
+    /// <param name="array">An array to take a slice from</param>
+    /// <param name="i"></param>
+    /// <param name="n"></param>
+    /// <returns></returns>
+    private Renderer[] SliceArray(Renderer[] array, int i, int n)
+    {
+        int len = array.Length;
+        Renderer[] result = new Renderer[len];
+        if (n > i)
+        {
+            int count = Math.Min(len, n - i + 1);
+            Array.Copy(array, i, result, 0, count);
+            for (int j = count; j < len; j++)
+            {
+                result[j] = null;
+            }
+        }
+        else
+        {
+            Array.Copy(array, 0, result, 0, i);
+            for (int j = i; j < i + n; j++)
+            {
+                result[j] = null;
+            }
+            Array.Copy(array, i + n, result, i + n, len - (i + n));
+        }
+
+        return result;
     }
 }
