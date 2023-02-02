@@ -1420,7 +1420,7 @@ MonoBehaviour:
     m_HorizontalOverflow: 0
     m_VerticalOverflow: 0
     m_LineSpacing: 1
-  m_Text: 0.000
+  m_Text: NODEL
 --- !u!1 &3405899151162341398
 GameObject:
   m_ObjectHideFlags: 0
@@ -6729,7 +6729,7 @@ MonoBehaviour:
     m_HorizontalOverflow: 0
     m_VerticalOverflow: 0
     m_LineSpacing: 1
-  m_Text: Unused
+  m_Text: STRT IDX
 --- !u!1 &3405899152656043495
 GameObject:
   m_ObjectHideFlags: 0
@@ -7470,7 +7470,7 @@ MonoBehaviour:
     m_HorizontalOverflow: 0
     m_VerticalOverflow: 0
     m_LineSpacing: 1
-  m_Text: Unused
+  m_Text: MODE
 --- !u!1 &3405899152848238488
 GameObject:
   m_ObjectHideFlags: 0
@@ -7690,7 +7690,7 @@ MonoBehaviour:
     m_HorizontalOverflow: 0
     m_VerticalOverflow: 0
     m_LineSpacing: 1
-  m_Text: 0.000
+  m_Text: NONE
 --- !u!1 &3405899152895949696
 GameObject:
   m_ObjectHideFlags: 0

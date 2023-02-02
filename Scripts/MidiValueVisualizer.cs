@@ -31,6 +31,8 @@ public class MidiValueVisualizer : UdonSharpBehaviour
     [HideInInspector, FieldChangeCallback(nameof(Release))] public float _release = 1.0f;
     [HideInInspector, FieldChangeCallback(nameof(HueShift))] public float _hueShift = 0.0f;
     [HideInInspector, FieldChangeCallback(nameof(IntensityMult))] public float _intensityMult = 0.0f;
+    [HideInInspector, FieldChangeCallback(nameof(StartIndex))] public int startingArrayIndexOffset = -1;
+    [HideInInspector, FieldChangeCallback(nameof(ModeSelect))] public string modeSelect = "NONE";
     [HideInInspector] public float _sendRate_s = 1.0f;
     [HideInInspector] public float _sendRate_Hz = 1.0f;
     public GameObject previewObject;
@@ -45,6 +47,8 @@ public class MidiValueVisualizer : UdonSharpBehaviour
     public Text decayText;
     public Text releaseText;
     public Text intensityText;
+    public Text startIndexText;
+    public Text modeText;
 
     // Private Variables
     [HideInInspector, FieldChangeCallback(nameof(PadIndex))] public int _padIndex = -1;
@@ -157,6 +161,24 @@ public class MidiValueVisualizer : UdonSharpBehaviour
             intensityText.text = _intensityMult.ToString("0.000");
         }
         get => _intensityMult;
+    }
+    public int StartIndex
+    {
+        set
+        {
+            startingArrayIndexOffset = value;
+            startIndexText.text = startingArrayIndexOffset == -1 ? "NODEL" : startingArrayIndexOffset.ToString();
+        }
+        get => startingArrayIndexOffset;
+    }
+    public string ModeSelect
+    {
+        set
+        {
+            modeSelect = value;
+            modeText.text = modeSelect;
+        }
+        get => modeSelect;
     }
     public int PadIndex
     {

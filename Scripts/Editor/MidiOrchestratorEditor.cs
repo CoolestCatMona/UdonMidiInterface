@@ -88,6 +88,7 @@ public class MidiOrchestratorEditor : Editor
         EditorGUILayout.PropertyField(serializedObject.FindProperty("buttonEvents"),new GUIContent("Pad Events", "Events to fire on a pad press"),  true);
         EditorGUILayout.PropertyField(serializedObject.FindProperty("maxTime"),new GUIContent("Transition Time", "Maximum amount of time (s) it should take for any change in material to occur"),  true);
         EditorGUILayout.PropertyField(serializedObject.FindProperty("sustainLevel"),new GUIContent("Sustain Level", "Intensity of material to Sustain for the amount of time defined by the sustain CC"),  true);
+        EditorGUILayout.PropertyField(serializedObject.FindProperty("MAX_STARTING_INDEX"),new GUIContent("Max Starting Offset", "Maximum starting offset for arrays of objects. If you aren't using arrays of objects, don't worry about this."),  true);
         EditorGUILayout.Space(); EditorGUILayout.Space();
 
         var header = new GUIStyle(EditorStyles.boldLabel);
@@ -152,15 +153,15 @@ public class MidiOrchestratorEditor : Editor
         {
             // Magic numbers used below, IYKYK
             case CUSTOM_CONTROLLER:
-                ControllerSpecificSettings(36, 52, new int[] {10, 74, 71, 76, 114, 18, 19, 16, 77}, false, useDefaults, foldoutState);
+                ControllerSpecificSettings(36, 52, new int[] {10, 74, 71, 76, 114, 18, 19, 16, 77, 93, 73}, false, useDefaults, foldoutState);
                 break;
             case 1:
                 if (foldoutState) EditorGUILayout.HelpBox(help_text, MessageType.Info, true);
-                ControllerSpecificSettings(36, 52, new int[] {10, 74, 71, 76, 114, 18, 19, 16, 77}, false, useDefaults, foldoutState);
+                ControllerSpecificSettings(36, 52, new int[] {10, 74, 71, 76, 114, 18, 19, 16, 77, 93, 73}, false, useDefaults, foldoutState);
                 break;
             case 2:
                 if (foldoutState) EditorGUILayout.HelpBox(help_text, MessageType.Info, true);
-                ControllerSpecificSettings(48, 80, new int[] {65, 64, 69, 68, 73, 72, 77, 76, 67, 66, 71, 70, 75, 74, 79, 78, 79, 80}, true, useDefaults, foldoutState);
+                ControllerSpecificSettings(48, 80, new int[] {65, 64, 69, 68, 73, 72, 77, 76, 67, 66, 71, 70, 75, 74, 79, 78, 80, 79, 82, 81, 84, 83}, true, useDefaults, foldoutState);
                 break;
             default:
                 Debug.LogError("Unrecognized Option");
@@ -211,6 +212,8 @@ public class MidiOrchestratorEditor : Editor
             var sustain_P = serializedObject.FindProperty("SUSTAIN");
             var release_P = serializedObject.FindProperty("RELEASE");
             var intensitymult_P = serializedObject.FindProperty("INTENSITYMULT");
+            var startIndex_P = serializedObject.FindProperty("START_INDEX");
+            var mode_P = serializedObject.FindProperty("MODE");
 
             var red_M = serializedObject.FindProperty("RED_DEC");
             var green_M = serializedObject.FindProperty("GREEN_DEC");
@@ -223,6 +226,8 @@ public class MidiOrchestratorEditor : Editor
             var intensitymult_M = serializedObject.FindProperty("INTENSITYMULT_DEC");
             var padChangeAmnt = serializedObject.FindProperty("padCCChangeAmnt");
             var padStop = serializedObject.FindProperty("padStop");
+            var startIndex_M = serializedObject.FindProperty("START_INDEX_DEC");
+            var mode_M = serializedObject.FindProperty("MODE_DEC");
 
             if(useDefaults)
             {
@@ -244,6 +249,10 @@ public class MidiOrchestratorEditor : Editor
                 release_M.intValue = cc_array[15];
                 intensitymult_P.intValue = cc_array[16];
                 intensitymult_M.intValue = cc_array[17];
+                startIndex_P.intValue = cc_array[18];
+                startIndex_M.intValue = cc_array[19];
+                mode_P.intValue = cc_array[20];
+                mode_M.intValue = cc_array[21];
                 padChangeAmnt.floatValue = .05f;
                 padStop.intValue = 64;
             }
@@ -281,6 +290,12 @@ public class MidiOrchestratorEditor : Editor
                 EditorGUILayout.Space();
                 EditorGUILayout.PropertyField(intensitymult_P,new GUIContent("Intensity+"),  true);
                 EditorGUILayout.PropertyField(intensitymult_M,new GUIContent("Intensity-"),  true);
+                EditorGUILayout.Space();
+                EditorGUILayout.PropertyField(startIndex_P,new GUIContent("Start Index+"),  true);
+                EditorGUILayout.PropertyField(startIndex_M,new GUIContent("Start Index-"),  true);
+                EditorGUILayout.Space();
+                EditorGUILayout.PropertyField(mode_P,new GUIContent("Mode+"),  true);
+                EditorGUILayout.PropertyField(mode_M,new GUIContent("Mode-"),  true);
             }
         }
         else
@@ -294,6 +309,8 @@ public class MidiOrchestratorEditor : Editor
             var sustain_CC = serializedObject.FindProperty("SUSTAIN");
             var release_CC = serializedObject.FindProperty("RELEASE");
             var intensitymult_CC = serializedObject.FindProperty("INTENSITYMULT");
+            var startIndex_CC = serializedObject.FindProperty("START_INDEX");
+            var mode_CC = serializedObject.FindProperty("MODE");
 
             if(useDefaults)
             {
@@ -306,6 +323,8 @@ public class MidiOrchestratorEditor : Editor
                 sustain_CC.intValue = cc_array[6];
                 release_CC.intValue = cc_array[7];
                 intensitymult_CC.intValue = cc_array[8];
+                startIndex_CC.intValue = cc_array[9];
+                mode_CC.intValue = cc_array[10];
             }
 
             if(draw)
@@ -319,6 +338,8 @@ public class MidiOrchestratorEditor : Editor
                 EditorGUILayout.PropertyField(sustain_CC,new GUIContent("Sustain CC"),  true);
                 EditorGUILayout.PropertyField(release_CC,new GUIContent("Release CC"),  true);
                 EditorGUILayout.PropertyField(intensitymult_CC,new GUIContent("Intensity CC"),  true);
+                EditorGUILayout.PropertyField(startIndex_CC,new GUIContent("Start Index CC"),  true);
+                EditorGUILayout.PropertyField(mode_CC,new GUIContent("Mode CC"),  true);
             }
         }
         EditorGUI.indentLevel--;
