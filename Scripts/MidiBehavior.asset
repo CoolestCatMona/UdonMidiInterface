@@ -44,7 +44,7 @@ MonoBehaviour:
       Data: 
     - Name: 
       Entry: 12
-      Data: 48
+      Data: 47
     - Name: 
       Entry: 7
       Data: 
@@ -722,13 +722,13 @@ MonoBehaviour:
       Data: 
     - Name: $k
       Entry: 1
-      Data: _usesAreaLit
+      Data: usesAreaLit
     - Name: $v
       Entry: 7
       Data: 42|UdonSharp.Compiler.FieldDefinition, UdonSharp.Editor
     - Name: <Name>k__BackingField
       Entry: 1
-      Data: _usesAreaLit
+      Data: usesAreaLit
     - Name: <UserType>k__BackingField
       Entry: 9
       Data: 33
@@ -770,13 +770,13 @@ MonoBehaviour:
       Data: 
     - Name: $k
       Entry: 1
-      Data: _intensityMult
+      Data: intensityMult
     - Name: $v
       Entry: 7
       Data: 44|UdonSharp.Compiler.FieldDefinition, UdonSharp.Editor
     - Name: <Name>k__BackingField
       Entry: 1
-      Data: _intensityMult
+      Data: intensityMult
     - Name: <UserType>k__BackingField
       Entry: 9
       Data: 7
@@ -818,13 +818,13 @@ MonoBehaviour:
       Data: 
     - Name: $k
       Entry: 1
-      Data: targetIntensity
+      Data: _targetIntensity
     - Name: $v
       Entry: 7
       Data: 46|UdonSharp.Compiler.FieldDefinition, UdonSharp.Editor
     - Name: <Name>k__BackingField
       Entry: 1
-      Data: targetIntensity
+      Data: _targetIntensity
     - Name: <UserType>k__BackingField
       Entry: 9
       Data: 7
@@ -866,13 +866,13 @@ MonoBehaviour:
       Data: 
     - Name: $k
       Entry: 1
-      Data: _areaListMesh
+      Data: areaLitMesh
     - Name: $v
       Entry: 7
       Data: 48|UdonSharp.Compiler.FieldDefinition, UdonSharp.Editor
     - Name: <Name>k__BackingField
       Entry: 1
-      Data: _areaListMesh
+      Data: areaLitMesh
     - Name: <UserType>k__BackingField
       Entry: 7
       Data: 49|System.RuntimeType, mscorlib
@@ -1082,13 +1082,13 @@ MonoBehaviour:
       Data: 
     - Name: $k
       Entry: 1
-      Data: _towardsColorVec4
+      Data: _colorAtOnEvent
     - Name: $v
       Entry: 7
       Data: 60|UdonSharp.Compiler.FieldDefinition, UdonSharp.Editor
     - Name: <Name>k__BackingField
       Entry: 1
-      Data: _towardsColorVec4
+      Data: _colorAtOnEvent
     - Name: <UserType>k__BackingField
       Entry: 7
       Data: 61|System.RuntimeType, mscorlib
@@ -1136,13 +1136,13 @@ MonoBehaviour:
       Data: 
     - Name: $k
       Entry: 1
-      Data: _awayColorVec4
+      Data: _colorAtOffEvent
     - Name: $v
       Entry: 7
       Data: 63|UdonSharp.Compiler.FieldDefinition, UdonSharp.Editor
     - Name: <Name>k__BackingField
       Entry: 1
-      Data: _awayColorVec4
+      Data: _colorAtOffEvent
     - Name: <UserType>k__BackingField
       Entry: 9
       Data: 61
@@ -1478,13 +1478,13 @@ MonoBehaviour:
       Data: 
     - Name: $k
       Entry: 1
-      Data: _specialRenderers
+      Data: _remainingRenderers
     - Name: $v
       Entry: 7
       Data: 78|UdonSharp.Compiler.FieldDefinition, UdonSharp.Editor
     - Name: <Name>k__BackingField
       Entry: 1
-      Data: _specialRenderers
+      Data: _remainingRenderers
     - Name: <UserType>k__BackingField
       Entry: 9
       Data: 55
@@ -1868,13 +1868,13 @@ MonoBehaviour:
       Data: 
     - Name: $k
       Entry: 1
-      Data: _onIteration
+      Data: _onIterator
     - Name: $v
       Entry: 7
       Data: 95|UdonSharp.Compiler.FieldDefinition, UdonSharp.Editor
     - Name: <Name>k__BackingField
       Entry: 1
-      Data: _onIteration
+      Data: _onIterator
     - Name: <UserType>k__BackingField
       Entry: 9
       Data: 26
@@ -1916,13 +1916,13 @@ MonoBehaviour:
       Data: 
     - Name: $k
       Entry: 1
-      Data: _offIteration
+      Data: _offIterator
     - Name: $v
       Entry: 7
       Data: 97|UdonSharp.Compiler.FieldDefinition, UdonSharp.Editor
     - Name: <Name>k__BackingField
       Entry: 1
-      Data: _offIteration
+      Data: _offIterator
     - Name: <UserType>k__BackingField
       Entry: 9
       Data: 26
@@ -1964,13 +1964,13 @@ MonoBehaviour:
       Data: 
     - Name: $k
       Entry: 1
-      Data: _specialOnIteration
+      Data: _finishUpdateOnIterator
     - Name: $v
       Entry: 7
       Data: 99|UdonSharp.Compiler.FieldDefinition, UdonSharp.Editor
     - Name: <Name>k__BackingField
       Entry: 1
-      Data: _specialOnIteration
+      Data: _finishUpdateOnIterator
     - Name: <UserType>k__BackingField
       Entry: 9
       Data: 26
@@ -2013,13 +2013,13 @@ MonoBehaviour:
       Data: 
     - Name: $k
       Entry: 1
-      Data: _specialOffIteration
+      Data: _finishUpdateOffIterator
     - Name: $v
       Entry: 7
       Data: 101|UdonSharp.Compiler.FieldDefinition, UdonSharp.Editor
     - Name: <Name>k__BackingField
       Entry: 1
-      Data: _specialOffIteration
+      Data: _finishUpdateOffIterator
     - Name: <UserType>k__BackingField
       Entry: 9
       Data: 26
@@ -2062,13 +2062,13 @@ MonoBehaviour:
       Data: 
     - Name: $k
       Entry: 1
-      Data: _arrayStart
+      Data: _circularArrayStartIndex
     - Name: $v
       Entry: 7
       Data: 103|UdonSharp.Compiler.FieldDefinition, UdonSharp.Editor
     - Name: <Name>k__BackingField
       Entry: 1
-      Data: _arrayStart
+      Data: _circularArrayStartIndex
     - Name: <UserType>k__BackingField
       Entry: 9
       Data: 26
@@ -2111,13 +2111,13 @@ MonoBehaviour:
       Data: 
     - Name: $k
       Entry: 1
-      Data: _arrayStop
+      Data: _circularArrayStopIndex
     - Name: $v
       Entry: 7
       Data: 105|UdonSharp.Compiler.FieldDefinition, UdonSharp.Editor
     - Name: <Name>k__BackingField
       Entry: 1
-      Data: _arrayStop
+      Data: _circularArrayStopIndex
     - Name: <UserType>k__BackingField
       Entry: 9
       Data: 26
@@ -2160,13 +2160,13 @@ MonoBehaviour:
       Data: 
     - Name: $k
       Entry: 1
-      Data: _specialArrayStop
+      Data: _reamainingArrayStartIndex
     - Name: $v
       Entry: 7
       Data: 107|UdonSharp.Compiler.FieldDefinition, UdonSharp.Editor
     - Name: <Name>k__BackingField
       Entry: 1
-      Data: _specialArrayStop
+      Data: _reamainingArrayStartIndex
     - Name: <UserType>k__BackingField
       Entry: 9
       Data: 26
@@ -2209,13 +2209,13 @@ MonoBehaviour:
       Data: 
     - Name: $k
       Entry: 1
-      Data: finalUpdateStartIndex
+      Data: _EmissionColor
     - Name: $v
       Entry: 7
       Data: 109|UdonSharp.Compiler.FieldDefinition, UdonSharp.Editor
     - Name: <Name>k__BackingField
       Entry: 1
-      Data: finalUpdateStartIndex
+      Data: _EmissionColor
     - Name: <UserType>k__BackingField
       Entry: 9
       Data: 26
@@ -2258,13 +2258,13 @@ MonoBehaviour:
       Data: 
     - Name: $k
       Entry: 1
-      Data: _EmissionColor
+      Data: _Color
     - Name: $v
       Entry: 7
       Data: 111|UdonSharp.Compiler.FieldDefinition, UdonSharp.Editor
     - Name: <Name>k__BackingField
       Entry: 1
-      Data: _EmissionColor
+      Data: _Color
     - Name: <UserType>k__BackingField
       Entry: 9
       Data: 26
@@ -2307,13 +2307,13 @@ MonoBehaviour:
       Data: 
     - Name: $k
       Entry: 1
-      Data: _Color
+      Data: _LightColor
     - Name: $v
       Entry: 7
       Data: 113|UdonSharp.Compiler.FieldDefinition, UdonSharp.Editor
     - Name: <Name>k__BackingField
       Entry: 1
-      Data: _Color
+      Data: _LightColor
     - Name: <UserType>k__BackingField
       Entry: 9
       Data: 26
@@ -2356,19 +2356,19 @@ MonoBehaviour:
       Data: 
     - Name: $k
       Entry: 1
-      Data: _LightColor
+      Data: MAX_COLOR_VALUE
     - Name: $v
       Entry: 7
       Data: 115|UdonSharp.Compiler.FieldDefinition, UdonSharp.Editor
     - Name: <Name>k__BackingField
       Entry: 1
-      Data: _LightColor
+      Data: MAX_COLOR_VALUE
     - Name: <UserType>k__BackingField
       Entry: 9
-      Data: 26
+      Data: 7
     - Name: <SystemType>k__BackingField
       Entry: 9
-      Data: 26
+      Data: 7
     - Name: <SyncMode>k__BackingField
       Entry: 7
       Data: System.Nullable`1[[UdonSharp.UdonSyncMode, UdonSharp.Runtime]], mscorlib
@@ -2405,13 +2405,13 @@ MonoBehaviour:
       Data: 
     - Name: $k
       Entry: 1
-      Data: MAX_COLOR_VALUE
+      Data: MIN_COLOR_VALUE
     - Name: $v
       Entry: 7
       Data: 117|UdonSharp.Compiler.FieldDefinition, UdonSharp.Editor
     - Name: <Name>k__BackingField
       Entry: 1
-      Data: MAX_COLOR_VALUE
+      Data: MIN_COLOR_VALUE
     - Name: <UserType>k__BackingField
       Entry: 9
       Data: 7
@@ -2433,55 +2433,6 @@ MonoBehaviour:
     - Name: _fieldAttributes
       Entry: 7
       Data: 118|System.Collections.Generic.List`1[[System.Attribute, mscorlib]],
-        mscorlib
-    - Name: 
-      Entry: 12
-      Data: 0
-    - Name: 
-      Entry: 13
-      Data: 
-    - Name: 
-      Entry: 8
-      Data: 
-    - Name: 
-      Entry: 8
-      Data: 
-    - Name: 
-      Entry: 8
-      Data: 
-    - Name: 
-      Entry: 7
-      Data: 
-    - Name: $k
-      Entry: 1
-      Data: MIN_COLOR_VALUE
-    - Name: $v
-      Entry: 7
-      Data: 119|UdonSharp.Compiler.FieldDefinition, UdonSharp.Editor
-    - Name: <Name>k__BackingField
-      Entry: 1
-      Data: MIN_COLOR_VALUE
-    - Name: <UserType>k__BackingField
-      Entry: 9
-      Data: 7
-    - Name: <SystemType>k__BackingField
-      Entry: 9
-      Data: 7
-    - Name: <SyncMode>k__BackingField
-      Entry: 7
-      Data: System.Nullable`1[[UdonSharp.UdonSyncMode, UdonSharp.Runtime]], mscorlib
-    - Name: 
-      Entry: 6
-      Data: 
-    - Name: 
-      Entry: 8
-      Data: 
-    - Name: <IsSerialized>k__BackingField
-      Entry: 5
-      Data: false
-    - Name: _fieldAttributes
-      Entry: 7
-      Data: 120|System.Collections.Generic.List`1[[System.Attribute, mscorlib]],
         mscorlib
     - Name: 
       Entry: 12

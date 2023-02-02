@@ -47,7 +47,7 @@ public class MidiBehaviorEditor : Editor
     {
         EditorGUI.indentLevel++;
         var useLTCGI = serializedObject.FindProperty("_usesLTCGI");
-        var useAreaLit = serializedObject.FindProperty("_usesAreaLit");
+        var useAreaLit = serializedObject.FindProperty("usesAreaLit");
 
         switch (_thirdPartySelectionIndex)
         {

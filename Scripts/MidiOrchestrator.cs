@@ -109,7 +109,7 @@ public class MidiOrchestrator : UdonSharpBehaviour
     [UdonSynced]
     private int _startingArrayIndexOffset = -1;
     [UdonSynced]
-    private bool _delaySequentialIndexes = true; // Having an index offset implies that sequential indexes SHOULD be delayed
+    private bool _delaySequentialIndexes = false; // Having an index offset implies that sequential indexes SHOULD be delayed
     [UdonSynced]
     private bool _useBehaviorIndex = false;
 
@@ -199,7 +199,7 @@ public class MidiOrchestrator : UdonSharpBehaviour
             buttonEvent.SetProgramVariable("_decay", _decay);
             buttonEvent.SetProgramVariable("_sustain", _sustain);
             buttonEvent.SetProgramVariable("_release", _release);
-            buttonEvent.SetProgramVariable("_intensityMult", _intensityMult);
+            buttonEvent.SetProgramVariable("intensityMult", _intensityMult);
             buttonEvent.SetProgramVariable("startingArrayIndexOffset", _startingArrayIndexOffset);
             buttonEvent.SetProgramVariable("delaySequentialIndexes", _delaySequentialIndexes);
             buttonEvent.SetProgramVariable("useBehaviorIndex", _useBehaviorIndex);
