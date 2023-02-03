@@ -226,7 +226,21 @@ public class MidiBehavior : UdonSharpBehaviour
                 _SetStepSizes(false);
                 _circularArrayStartIndex = _GetStartingIndex();
                 _circularArrayStopIndex = PreviousIndex(_childRenderers, _circularArrayStartIndex);
-                UpdateArrayAwayFromColor();
+                if (updateArrayElementsInSequence)
+                {
+                    // Array starting index will be the start index - 1 (first step in UpdateIndividual is incrementing the index)
+                    // TODO: Supplementel check for NODEL behavior, otherwise will just start at final index (not intended behavior)
+                    _arrayIndex = useBehaviorIndex ? _circularArrayStartIndex + indexOfBehavior - 1 : _circularArrayStartIndex - 1;
+                    _arrayIndex = Mod(_arrayIndex, _numRenderers);
+                    Debug.Log($@"OFF: Starting at index {_arrayIndex}");
+                    // Set stopping point as having made one full circle
+                    _individualStop = _arrayIndex + 1;
+                    UpdateArrayIndividuallyAway();
+                }
+                else
+                {
+                    UpdateArrayAwayFromColor();
+                }
             }
             else
             {
@@ -449,6 +463,7 @@ public class MidiBehavior : UdonSharpBehaviour
     public void UpdateArrayIndividuallyTowards()
     {
         // TODO: Put this type of behavior on the fourth knob, call it array behavior
+        // TODO: Expected behavior will be to immediately step away from the color (per index) unless the pad is held. This event may need to handle MidiOff as well.
         // If we are at a stopping point and the lock is not held
         if ((_individualOnIterator == _individualStop) && !_individualLock)
         {
@@ -480,6 +495,40 @@ public class MidiBehavior : UdonSharpBehaviour
         }
         // The lock is held, wait.
         SendCustomEventDelayedSeconds(nameof(UpdateArrayIndividuallyTowards), _updateRate_Hz);
+    }
+    public void UpdateArrayIndividuallyAway()
+    {
+        // If we are at a stopping point and the lock is not held
+        if ((_individualOffIterator == _individualStop) && !_individualLock) // Possibly need a separate lock
+        {
+            _individualLock = false;
+            _offEventLock = false;
+            _individualOffIterator = 0;
+            return;
+        }
+        // If I am not holding the lock, but I am not ready to stop, I should continue
+        if (!_individualLock)
+        {
+            // Grab locks
+            _individualLock = true;
+            _offEventLock = true;
+            // Increment index
+            _arrayIndex = Mod(_arrayIndex + 1, _numRenderers);
+            // Set _Renderer and _initialColor, variables that would normally be used for just a single renderer, now repurposed for this
+            var block = new MaterialPropertyBlock();
+            _Renderer = _childRenderers[_arrayIndex];
+            _Renderer.GetPropertyBlock(block);
+            _initialColor = _startColor[_arrayIndex];
+
+            // Reuse UpdateRendererTowardsColor
+            UpdateArrayAwayFromColor();
+
+
+            // Increase Iterator
+            _individualOffIterator++;
+        }
+        // The lock is held, wait.
+        SendCustomEventDelayedSeconds(nameof(UpdateArrayIndividuallyAway), _updateRate_Hz);
     }
 
     /// <summary>
@@ -696,6 +745,7 @@ public class MidiBehavior : UdonSharpBehaviour
     /// <param name="towards">the step size is towards a color or away from a color</param>
     private void _SetStepSizes(bool towards)
     {
+        // TODO: Step size needs to be set for attack, decay, sustain, and release. not just attack and release.
         if (_isArray)
         {
             if (towards)
