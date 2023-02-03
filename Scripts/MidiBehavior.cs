@@ -30,6 +30,7 @@ public class MidiBehavior : UdonSharpBehaviour
     [HideInInspector] public int startingArrayIndexOffset = -1;
     [HideInInspector] public bool delaySequentialIndexes = false;
     [HideInInspector] public bool useBehaviorIndex = false;
+    [HideInInspector] public bool updateArrayElementsInSequence = false;
 
 
     // AreaLit specific settings
@@ -58,6 +59,7 @@ public class MidiBehavior : UdonSharpBehaviour
     private bool _isArray;
     private Vector4[] _step_towards;
     private Vector4[] _step_away;
+    private bool _individualLock = false;
     private bool _onEventLock = false;
     private bool _offEventLock = false;
     private int _numRenderers;
@@ -65,9 +67,13 @@ public class MidiBehavior : UdonSharpBehaviour
     private int _offIterator = 0;
     private int _finishUpdateOnIterator = 0;
     private int _finishUpdateOffIterator = 0;
+    private int _individualOnIterator = 0;
+    private int _individualOffIterator = 0;
+    private int _individualStop = 0;
     private int _circularArrayStartIndex;
     private int _circularArrayStopIndex;
     private int _reamainingArrayStartIndex;
+    private int _arrayIndex;
 
 
     // PropertyIDs
@@ -166,7 +172,23 @@ public class MidiBehavior : UdonSharpBehaviour
             _SetStepSizes(true);
             _circularArrayStartIndex = _GetStartingIndex();
             _circularArrayStopIndex = PreviousIndex(_childRenderers, _circularArrayStartIndex);
-            UpdateArrayTowardsColor();
+            // Check if we're updating array elements individually or if it's normal
+            if (updateArrayElementsInSequence)
+            {
+                // Array starting index will be the start index - 1 (first step in UpdateIndividual is incrementing the index)
+                // TODO: Supplementel check for NODEL behavior, otherwise will just start at final index (not intended behavior)
+                // TODO: Handle multiple ON events?
+                _arrayIndex = useBehaviorIndex ? _circularArrayStartIndex + indexOfBehavior - 1 : _circularArrayStartIndex - 1;
+                _arrayIndex = Mod(_arrayIndex, _numRenderers);
+                Debug.Log($@"Starting at index {_arrayIndex}");
+                // Set stopping point as having made one full circle
+                _individualStop = _arrayIndex + 1;
+                UpdateArrayIndividuallyTowards();
+            }
+            else
+            {
+                UpdateArrayTowardsColor();
+            }
         }
         else
         {
@@ -265,6 +287,7 @@ public class MidiBehavior : UdonSharpBehaviour
         if (objectUpdateCompleted)
         {
             _onEventLock = false;
+            _individualLock = false;
         }
 
         else
@@ -421,6 +444,42 @@ public class MidiBehavior : UdonSharpBehaviour
         }
         _offIterator++;
         SendCustomEventDelayedSeconds(nameof(UpdateArrayAwayFromColor), _updateRate_Hz);
+    }
+
+    public void UpdateArrayIndividuallyTowards()
+    {
+        // TODO: Put this type of behavior on the fourth knob, call it array behavior
+        // If we are at a stopping point and the lock is not held
+        if ((_individualOnIterator == _individualStop) && !_individualLock)
+        {
+            _individualLock = false;
+            _onEventLock = false;
+            _individualOnIterator = 0;
+            return;
+        }
+        // If I am not holding the lock, but I am not ready to stop, I should continue
+        if (!_individualLock)
+        {
+            // Grab locks
+            _individualLock = true;
+            _onEventLock = true;
+            // Increment index
+            _arrayIndex = Mod(_arrayIndex + 1, _numRenderers);
+            // Set _Renderer and _initialColor, variables that would normally be used for just a single renderer, now repurposed for this
+            var block = new MaterialPropertyBlock();
+            _Renderer = _childRenderers[_arrayIndex];
+            _Renderer.GetPropertyBlock(block);
+            _initialColor = _startColor[_arrayIndex];
+
+            // Reuse UpdateRendererTowardsColor
+            UpdateRendererTowardsColor();
+
+
+            // Increase Iterator
+            _individualOnIterator++;
+        }
+        // The lock is held, wait.
+        SendCustomEventDelayedSeconds(nameof(UpdateArrayIndividuallyTowards), _updateRate_Hz);
     }
 
     /// <summary>

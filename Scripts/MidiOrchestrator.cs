@@ -112,6 +112,8 @@ public class MidiOrchestrator : UdonSharpBehaviour
     private bool _delaySequentialIndexes = false; // Having an index offset implies that sequential indexes SHOULD be delayed
     [UdonSynced]
     private bool _useBehaviorIndex = false;
+    [UdonSynced]
+    private bool _updateArrayElementsInSequence = false;
 
     /// <summary>
     /// Numbers corresponding to CC on a MIDI controller.
@@ -203,6 +205,7 @@ public class MidiOrchestrator : UdonSharpBehaviour
             buttonEvent.SetProgramVariable("startingArrayIndexOffset", _startingArrayIndexOffset);
             buttonEvent.SetProgramVariable("delaySequentialIndexes", _delaySequentialIndexes);
             buttonEvent.SetProgramVariable("useBehaviorIndex", _useBehaviorIndex);
+            buttonEvent.SetProgramVariable("updateArrayElementsInSequence", _updateArrayElementsInSequence);
         }
     }
 
@@ -235,6 +238,7 @@ public class MidiOrchestrator : UdonSharpBehaviour
                 buttonEvent.SetProgramVariable("startingArrayIndexOffset", _startingArrayIndexOffset);
                 buttonEvent.SetProgramVariable("delaySequentialIndexes", _delaySequentialIndexes);
                 buttonEvent.SetProgramVariable("useBehaviorIndex", _useBehaviorIndex);
+                buttonEvent.SetProgramVariable("updateArrayElementsInSequence", _updateArrayElementsInSequence);
             }
         }
     }
@@ -555,6 +559,7 @@ public class MidiOrchestrator : UdonSharpBehaviour
             buttonEvent.SetProgramVariable("startingArrayIndexOffset", _startingArrayIndexOffset);
             buttonEvent.SetProgramVariable("delaySequentialIndexes", _delaySequentialIndexes);
             buttonEvent.SetProgramVariable("useBehaviorIndex", _useBehaviorIndex);
+            buttonEvent.SetProgramVariable("updateArrayElementsInSequence", _updateArrayElementsInSequence);
         }
 
         if (usesVisualizer)
@@ -710,6 +715,7 @@ public class MidiOrchestrator : UdonSharpBehaviour
             buttonEvent.SetProgramVariable("startingArrayIndexOffset", _startingArrayIndexOffset);
             buttonEvent.SetProgramVariable("delaySequentialIndexes", _delaySequentialIndexes);
             buttonEvent.SetProgramVariable("useBehaviorIndex", _useBehaviorIndex);
+            buttonEvent.SetProgramVariable("updateArrayElementsInSequence", _updateArrayElementsInSequence);
         }
 
         if (usesVisualizer)
@@ -753,14 +759,27 @@ public class MidiOrchestrator : UdonSharpBehaviour
             case 0:
                 modeSelect = "NONE";
                 _useBehaviorIndex = false;
+                _updateArrayElementsInSequence = false;
                 break;
             case 1:
                 modeSelect = "SKIP";
                 _useBehaviorIndex = true;
+                _updateArrayElementsInSequence = false;
+                break;
+            case 2:
+                modeSelect = "INDV";
+                _useBehaviorIndex = false;
+                _updateArrayElementsInSequence = true;
+                break;
+            case 3:
+                modeSelect = "SkpIn";
+                _useBehaviorIndex = true;
+                _updateArrayElementsInSequence = true;
                 break;
             default:
                 modeSelect = "UNIMP";
                 _useBehaviorIndex = false;
+                _updateArrayElementsInSequence = false;
                 break;
         }
     }
