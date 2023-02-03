@@ -231,7 +231,7 @@ public class MidiOrchestrator : UdonSharpBehaviour
                 buttonEvent.SetProgramVariable("_decay", _decay);
                 buttonEvent.SetProgramVariable("_sustain", _sustain);
                 buttonEvent.SetProgramVariable("_release", _release);
-                buttonEvent.SetProgramVariable("_intensityMult", _intensityMult);
+                buttonEvent.SetProgramVariable("intensityMult", _intensityMult);
                 buttonEvent.SetProgramVariable("startingArrayIndexOffset", _startingArrayIndexOffset);
                 buttonEvent.SetProgramVariable("delaySequentialIndexes", _delaySequentialIndexes);
                 buttonEvent.SetProgramVariable("useBehaviorIndex", _useBehaviorIndex);
@@ -551,7 +551,7 @@ public class MidiOrchestrator : UdonSharpBehaviour
             buttonEvent.SetProgramVariable("_decay", _decay);
             buttonEvent.SetProgramVariable("_sustain", _sustain);
             buttonEvent.SetProgramVariable("_release", _release);
-            buttonEvent.SetProgramVariable("_intensityMult", _intensityMult);
+            buttonEvent.SetProgramVariable("intensityMult", _intensityMult);
             buttonEvent.SetProgramVariable("startingArrayIndexOffset", _startingArrayIndexOffset);
             buttonEvent.SetProgramVariable("delaySequentialIndexes", _delaySequentialIndexes);
             buttonEvent.SetProgramVariable("useBehaviorIndex", _useBehaviorIndex);
@@ -706,7 +706,7 @@ public class MidiOrchestrator : UdonSharpBehaviour
             buttonEvent.SetProgramVariable("_decay", _decay);
             buttonEvent.SetProgramVariable("_sustain", _sustain);
             buttonEvent.SetProgramVariable("_release", _release);
-            buttonEvent.SetProgramVariable("_intensityMult", _intensityMult);
+            buttonEvent.SetProgramVariable("intensityMult", _intensityMult);
             buttonEvent.SetProgramVariable("startingArrayIndexOffset", _startingArrayIndexOffset);
             buttonEvent.SetProgramVariable("delaySequentialIndexes", _delaySequentialIndexes);
             buttonEvent.SetProgramVariable("useBehaviorIndex", _useBehaviorIndex);

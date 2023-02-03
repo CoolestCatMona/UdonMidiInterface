@@ -109,8 +109,11 @@ public class MidiBehavior : UdonSharpBehaviour
 
             if (usesAreaLit)
             {
-                _AreaLitChildRenderers = areaLitMesh.GetComponentsInChildren<Renderer>(true);
-
+                if (areaLitMesh != null)
+                {
+                    Renderer[] areaLitRenderers = areaLitMesh.GetComponentsInChildren<Renderer>(true);
+                    _AreaLitChildRenderers = DistributeValues(_childRenderers, areaLitRenderers);
+                }
             }
             else
             {
@@ -135,10 +138,13 @@ public class MidiBehavior : UdonSharpBehaviour
 
             if (usesAreaLit)
             {
-                float defaultIntensityMult = (float)Math.Pow(2.0, (double)intensityMult);
-                _AreaLitRenderer = areaLitMesh.GetComponent<Renderer>();
-                var areaLitBlock = new MaterialPropertyBlock();
-                _UpdateAreaLit(usesAreaLit, _AreaLitRenderer, _currentColor, defaultIntensityMult);
+                if (areaLitMesh != null)
+                {
+                    float defaultIntensityMult = (float)Math.Pow(2.0, (double)intensityMult);
+                    _AreaLitRenderer = areaLitMesh.GetComponent<Renderer>();
+                    var areaLitBlock = new MaterialPropertyBlock();
+                    _UpdateAreaLit(usesAreaLit, _AreaLitRenderer, _currentColor, defaultIntensityMult);
+                }
             }
         }
     }
@@ -239,7 +245,7 @@ public class MidiBehavior : UdonSharpBehaviour
         {
             _updatedColor = _UpdateColor(_currentColorVec4, targetColorVec4, step);
             _UpdateRendererMaterialProperties(renderer, block, _updatedColor);
-            _UpdateAreaLit(usesAreaLit, _AreaLitRenderer, _updatedColor, _targetIntensity);
+            _UpdateAreaLit(usesAreaLit, areaLitRenderer, _updatedColor, _targetIntensity);
         }
         return updateCompleted;
     }
@@ -541,7 +547,7 @@ public class MidiBehavior : UdonSharpBehaviour
     /// <param name="intensity">Intensity multiplier for AreaLit</param>
     private void _UpdateAreaLit(bool useAreaLit, Renderer areaLitRenderer, Color col, float intensity)
     {
-        if (useAreaLit)
+        if (useAreaLit && areaLitRenderer != null)
         {
             var areaLitBlock = new MaterialPropertyBlock();
             areaLitBlock.SetColor(_LightColor, new Color(col.r * intensity,
@@ -702,6 +708,26 @@ public class MidiBehavior : UdonSharpBehaviour
         }
 
         return result;
+    }
 
+    /// <summary>
+    /// Distributes values from B evenly into a new array of size A
+    /// </summary>
+    /// <param name="A">Array to get size from</param>
+    /// <param name="B">Array to copy values from</param>
+    /// <returns>A new array of size A with values from B distributed evenly throughout</returns>
+    public Renderer[] DistributeValues(Renderer[] A, Renderer[] B)
+    {
+        Renderer[] result = new Renderer[A.Length];
+        int step = A.Length / B.Length;
+        int currrentIndex = 0;
+
+        for (int i = 0; i < B.Length; i++)
+        {
+            result[currrentIndex] = B[i];
+            currrentIndex += step;
+        }
+
+        return result;
     }
 }

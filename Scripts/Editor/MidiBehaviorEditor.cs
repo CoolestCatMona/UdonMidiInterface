@@ -60,9 +60,9 @@ public class MidiBehaviorEditor : Editor
                 useLTCGI.boolValue = true;
                 break;
             case 2:
-                EditorGUILayout.HelpBox("Eventual Hook-ins for Area Lit Here", MessageType.Info, true);
                 useAreaLit.boolValue = true;
-                EditorGUILayout.PropertyField(serializedObject.FindProperty("_areaListMesh"), new GUIContent("Area Lit Meshes", "Meshes / continaer of objects with the 'AreaLit / LightMesh' Shader"));
+                EditorGUILayout.PropertyField(serializedObject.FindProperty("areaLitMesh"), new GUIContent("Area Lit Meshe(s)", "Meshes / continaer of objects with the 'AreaLit / LightMesh' Shader that will be modified with this object"));
+                EditorGUILayout.HelpBox("For single game objects, the Area Lit Mesh should be a single game object, for arrays of objects, the Area Lit mesh should also be an array of objects.", MessageType.Info, true);
                 break;
             default:
                 Debug.LogError("Unrecognized Option");
