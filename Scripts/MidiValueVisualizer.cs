@@ -21,7 +21,7 @@ public class MidiValueVisualizer : UdonSharpBehaviour
     /// <summary>
     /// Synchronized variables that are set via the MidiOrchestrator behavior.
     /// </summary>
-    [HideInInspector, FieldChangeCallback(nameof(ColorValue))] public Color _colorValue = Color.black;
+    [HideInInspector, FieldChangeCallback(nameof(ColorValue))] public Color _colorValue = Color.white;
     [HideInInspector, FieldChangeCallback(nameof(Red))] public float _r = 1.0f;
     [HideInInspector, FieldChangeCallback(nameof(Green))] public float _g = 1.0f;
     [HideInInspector, FieldChangeCallback(nameof(Blue))] public float _b = 1.0f;
@@ -31,8 +31,9 @@ public class MidiValueVisualizer : UdonSharpBehaviour
     [HideInInspector, FieldChangeCallback(nameof(Release))] public float _release = 1.0f;
     [HideInInspector, FieldChangeCallback(nameof(HueShift))] public float _hueShift = 0.0f;
     [HideInInspector, FieldChangeCallback(nameof(IntensityMult))] public float _intensityMult = 0.0f;
-    [HideInInspector, FieldChangeCallback(nameof(StartIndex))] public int startingArrayIndexOffset = -1;
+    [HideInInspector, FieldChangeCallback(nameof(StartIndex))] public int startingArrayIndexOffset = 0;
     [HideInInspector, FieldChangeCallback(nameof(ModeSelect))] public string modeSelect = "NONE";
+    [HideInInspector, FieldChangeCallback(nameof(ArrayIterationType))] public string arrayIterationType = "PRLEL";
     [HideInInspector] public float _sendRate_s = 1.0f;
     [HideInInspector] public float _sendRate_Hz = 1.0f;
     public GameObject previewObject;
@@ -49,6 +50,7 @@ public class MidiValueVisualizer : UdonSharpBehaviour
     public Text intensityText;
     public Text startIndexText;
     public Text modeText;
+    public Text arrayIterationTypeText;
 
     // Private Variables
     [HideInInspector, FieldChangeCallback(nameof(PadIndex))] public int _padIndex = -1;
@@ -64,10 +66,6 @@ public class MidiValueVisualizer : UdonSharpBehaviour
     void Start()
     {
         InitIDs();
-        attackText.text = "1.000";
-        decayText.text = "1.000";
-        sustainText.text = "1.000";
-        releaseText.text = "1.000";
     }
     public Color ColorValue
     {
@@ -179,6 +177,15 @@ public class MidiValueVisualizer : UdonSharpBehaviour
             modeText.text = modeSelect;
         }
         get => modeSelect;
+    }
+    public string ArrayIterationType
+    {
+        set
+        {
+            arrayIterationType = value;
+            arrayIterationTypeText.text = arrayIterationType;
+        }
+        get => arrayIterationType;
     }
     public int PadIndex
     {

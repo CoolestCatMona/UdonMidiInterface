@@ -19,7 +19,7 @@ public class MidiBehavior : UdonSharpBehaviour
     /// <summary>
     /// Synchronized variables that are set via the MidiOrchestrator behavior
     /// </summary>
-    [HideInInspector] public Color _color = Color.black;
+    [HideInInspector] public Color _color = Color.white;
     [HideInInspector] public float _attack = 1.0f;
     [HideInInspector] public float _decay = 1.0f;
     [HideInInspector] public float _sustain = 1.0f;
@@ -27,7 +27,7 @@ public class MidiBehavior : UdonSharpBehaviour
     [HideInInspector] public float _updateRate_s = 1.0f;
     [HideInInspector] public float _updateRate_Hz = 1.0f;
     [HideInInspector] public int indexOfBehavior = -1;
-    [HideInInspector] public int startingArrayIndexOffset = -1;
+    [HideInInspector] public int startingArrayIndexOffset = 0;
     [HideInInspector] public bool delaySequentialIndexes = false;
     [HideInInspector] public bool useBehaviorIndex = false;
     [HideInInspector] public bool updateArrayElementsInSequence = false;
@@ -40,22 +40,25 @@ public class MidiBehavior : UdonSharpBehaviour
     private float _targetIntensity;
     public GameObject areaLitMesh;
     private Renderer _AreaLitRenderer;
+    private Renderer _AreaLitRenderer_Off;
     private Renderer[] _AreaLitChildRenderers;
 
     // Not Currently Implemented
     [HideInInspector] public bool _usesLTCGI = false;
 
 
+    private Color transparent = new Color(0.0f, 0.0f, 0.0f, 0.0f);
     private Vector4 _colorAtOnEvent;
     private Vector4 _colorAtOffEvent;
     private Color _updatedColor;
-    private Color _initialColor = Color.black;
+    private Color _initialColor;
     private Color[] _startColor;
-    private Color _currentColor = Color.black;
+    private Color _currentColor;
     private Color[] _colorArray; // Not implemented, but can be for computational optimization
     private Renderer[] _childRenderers;
     private Renderer[] _remainingRenderers;
     private Renderer _Renderer;
+    private Renderer _Renderer_Off;
     private bool _isArray;
     private Vector4[] _step_towards;
     private Vector4[] _step_away;
@@ -102,7 +105,8 @@ public class MidiBehavior : UdonSharpBehaviour
     void Start()
     {
         InitIDs();
-
+        _initialColor = transparent;
+        _currentColor = transparent;
         if (transform.childCount > 0)
         {
             _isArray = true;
@@ -139,6 +143,7 @@ public class MidiBehavior : UdonSharpBehaviour
             _step_towards = new Vector4[1];
             _step_away = new Vector4[1];
             _Renderer = transform.GetComponent<Renderer>();
+            _Renderer_Off = _Renderer;
             var block = new MaterialPropertyBlock();
             _UpdateRendererMaterialProperties(_Renderer, block, _currentColor);
 
@@ -148,6 +153,7 @@ public class MidiBehavior : UdonSharpBehaviour
                 {
                     float defaultIntensityMult = (float)Math.Pow(2.0, (double)intensityMult);
                     _AreaLitRenderer = areaLitMesh.GetComponent<Renderer>();
+                    _AreaLitRenderer_Off = _AreaLitRenderer;
                     var areaLitBlock = new MaterialPropertyBlock();
                     _UpdateAreaLit(usesAreaLit, _AreaLitRenderer, _currentColor, defaultIntensityMult);
                 }
@@ -162,6 +168,11 @@ public class MidiBehavior : UdonSharpBehaviour
     /// </summary>
     public void MidiOnEvent()
     {
+        bool eitherLockHeld = (_onEventLock || _offEventLock);
+        if (eitherLockHeld && updateArrayElementsInSequence)
+        {
+            return;
+        }
         _onEventLock = true;
         _colorAtOnEvent = new Vector4(_color.r, _color.g, _color.b, 1.0f);
         _targetIntensity = (float)Math.Pow(2.0, (double)intensityMult);
@@ -169,19 +180,14 @@ public class MidiBehavior : UdonSharpBehaviour
         if (_isArray)
         {
             _SetStartingColor();
-            _SetStepSizes(true);
+            _SetStepSizes(towards: true, isArray: _isArray);
             _circularArrayStartIndex = _GetStartingIndex();
             _circularArrayStopIndex = PreviousIndex(_childRenderers, _circularArrayStartIndex);
-            // Check if we're updating array elements individually or if it's normal
             if (updateArrayElementsInSequence)
             {
-                // Array starting index will be the start index - 1 (first step in UpdateIndividual is incrementing the index)
                 // TODO: Supplementel check for NODEL behavior, otherwise will just start at final index (not intended behavior)
-                // TODO: Handle multiple ON events?
                 _arrayIndex = useBehaviorIndex ? _circularArrayStartIndex + indexOfBehavior - 1 : _circularArrayStartIndex - 1;
                 _arrayIndex = Mod(_arrayIndex, _numRenderers);
-                Debug.Log($@"Starting at index {_arrayIndex}");
-                // Set stopping point as having made one full circle
                 _individualStop = _arrayIndex + 1;
                 UpdateArrayIndividuallyTowards();
             }
@@ -195,7 +201,7 @@ public class MidiBehavior : UdonSharpBehaviour
             var block = new MaterialPropertyBlock();
             _Renderer.GetPropertyBlock(block);
             _initialColor = block.GetColor(_Color);
-            _SetStepSizes(true);
+            _SetStepSizes(towards: true, isArray: _isArray);
             UpdateRendererTowardsColor();
         }
     }
@@ -208,47 +214,34 @@ public class MidiBehavior : UdonSharpBehaviour
     /// </summary>
     public void MidiOffEvent()
     {
-        if (_onEventLock)
-        {
-            SendCustomEventDelayedSeconds(nameof(MidiOffEvent), _updateRate_Hz);
-        }
-        else if (_offEventLock)
+        if (_offEventLock || (updateArrayElementsInSequence && _isArray))
         {
             return;
+        }
+        else if (_onEventLock)
+        {
+            SendCustomEventDelayedSeconds(nameof(MidiOffEvent), _updateRate_Hz);
         }
         else
         {
             _offEventLock = true;
+            // TODO: With Decay/Sustain, this will not always be black! But release WILL always be black
             _colorAtOffEvent = new Vector4(Color.black.r, Color.black.g, Color.black.b, 0.0f);
             if (_isArray)
             {
                 _SetStartingColor();
-                _SetStepSizes(false);
+                _SetStepSizes(towards: false, isArray: _isArray);
                 _circularArrayStartIndex = _GetStartingIndex();
                 _circularArrayStopIndex = PreviousIndex(_childRenderers, _circularArrayStartIndex);
-                if (updateArrayElementsInSequence)
-                {
-                    // Array starting index will be the start index - 1 (first step in UpdateIndividual is incrementing the index)
-                    // TODO: Supplementel check for NODEL behavior, otherwise will just start at final index (not intended behavior)
-                    _arrayIndex = useBehaviorIndex ? _circularArrayStartIndex + indexOfBehavior - 1 : _circularArrayStartIndex - 1;
-                    _arrayIndex = Mod(_arrayIndex, _numRenderers);
-                    Debug.Log($@"OFF: Starting at index {_arrayIndex}");
-                    // Set stopping point as having made one full circle
-                    _individualStop = _arrayIndex + 1;
-                    UpdateArrayIndividuallyAway();
-                }
-                else
-                {
-                    UpdateArrayAwayFromColor();
-                }
+                UpdateArrayAwayFromColor();
             }
             else
             {
                 var block = new MaterialPropertyBlock();
-                _Renderer.GetPropertyBlock(block);
+                _Renderer_Off.GetPropertyBlock(block);
                 _initialColor = block.GetColor(_Color);
 
-                _SetStepSizes(false);
+                _SetStepSizes(towards: false, isArray: _isArray);
                 UpdateRendererAwayFromColor();
             }
         }
@@ -320,12 +313,12 @@ public class MidiBehavior : UdonSharpBehaviour
             _offEventLock = false;
             return;
         }
-        bool objectUpdateCompleted = _UpdateObject(_Renderer, _AreaLitRenderer, _colorAtOffEvent, _step_away[0]);
+        bool objectUpdateCompleted = _UpdateObject(_Renderer_Off, _AreaLitRenderer_Off, _colorAtOffEvent, _step_away[0]);
         if (objectUpdateCompleted)
         {
             _offEventLock = false;
+            _individualLock = false;
         }
-
         else
         {
             SendCustomEventDelayedSeconds(nameof(UpdateRendererAwayFromColor), _updateRate_Hz);
@@ -463,72 +456,52 @@ public class MidiBehavior : UdonSharpBehaviour
     public void UpdateArrayIndividuallyTowards()
     {
         // TODO: Put this type of behavior on the fourth knob, call it array behavior
-        // TODO: Expected behavior will be to immediately step away from the color (per index) unless the pad is held. This event may need to handle MidiOff as well.
-        // If we are at a stopping point and the lock is not held
-        if ((_individualOnIterator == _individualStop) && !_individualLock)
+        var block = new MaterialPropertyBlock();
+        int iter = (int)Math.Floor((double)(_individualOnIterator / 2));
+
+        if ((iter > _numRenderers) && !_individualLock)
         {
             _individualLock = false;
             _onEventLock = false;
             _individualOnIterator = 0;
             return;
         }
-        // If I am not holding the lock, but I am not ready to stop, I should continue
+
         if (!_individualLock)
         {
-            // Grab locks
-            _individualLock = true;
-            _onEventLock = true;
-            // Increment index
-            _arrayIndex = Mod(_arrayIndex + 1, _numRenderers);
-            // Set _Renderer and _initialColor, variables that would normally be used for just a single renderer, now repurposed for this
-            var block = new MaterialPropertyBlock();
-            _Renderer = _childRenderers[_arrayIndex];
-            _Renderer.GetPropertyBlock(block);
-            _initialColor = _startColor[_arrayIndex];
+            if ((_individualOnIterator != 0) && !_onEventLock)
+            {
+                // Grab Locks
+                _offEventLock = true;
+                _individualLock = true;
 
-            // Reuse UpdateRendererTowardsColor
-            UpdateRendererTowardsColor();
+                _colorAtOffEvent = new Vector4(Color.black.r, Color.black.g, Color.black.b, 0.0f);
+                _Renderer_Off = _childRenderers[_arrayIndex];
+                _AreaLitRenderer_Off = _AreaLitChildRenderers[_arrayIndex];
+                _Renderer_Off.GetPropertyBlock(block);
+                _initialColor = block.GetColor(_Color);
 
+                _SetStepSizes(towards: false, isArray: false);
+                UpdateRendererAwayFromColor();
+            }
 
-            // Increase Iterator
+            if ((iter < _numRenderers) && !_offEventLock)
+            {
+                _individualLock = true;
+                _onEventLock = true;
+
+                _arrayIndex = Mod(_arrayIndex + 1, _numRenderers);
+
+                _Renderer = _childRenderers[_arrayIndex];
+                _AreaLitRenderer = _AreaLitChildRenderers[_arrayIndex];
+                _Renderer.GetPropertyBlock(block);
+                _initialColor = _startColor[_arrayIndex];
+
+                UpdateRendererTowardsColor();
+            }
             _individualOnIterator++;
         }
-        // The lock is held, wait.
         SendCustomEventDelayedSeconds(nameof(UpdateArrayIndividuallyTowards), _updateRate_Hz);
-    }
-    public void UpdateArrayIndividuallyAway()
-    {
-        // If we are at a stopping point and the lock is not held
-        if ((_individualOffIterator == _individualStop) && !_individualLock) // Possibly need a separate lock
-        {
-            _individualLock = false;
-            _offEventLock = false;
-            _individualOffIterator = 0;
-            return;
-        }
-        // If I am not holding the lock, but I am not ready to stop, I should continue
-        if (!_individualLock)
-        {
-            // Grab locks
-            _individualLock = true;
-            _offEventLock = true;
-            // Increment index
-            _arrayIndex = Mod(_arrayIndex + 1, _numRenderers);
-            // Set _Renderer and _initialColor, variables that would normally be used for just a single renderer, now repurposed for this
-            var block = new MaterialPropertyBlock();
-            _Renderer = _childRenderers[_arrayIndex];
-            _Renderer.GetPropertyBlock(block);
-            _initialColor = _startColor[_arrayIndex];
-
-            // Reuse UpdateRendererTowardsColor
-            UpdateArrayAwayFromColor();
-
-
-            // Increase Iterator
-            _individualOffIterator++;
-        }
-        // The lock is held, wait.
-        SendCustomEventDelayedSeconds(nameof(UpdateArrayIndividuallyAway), _updateRate_Hz);
     }
 
     /// <summary>
@@ -743,10 +716,10 @@ public class MidiBehavior : UdonSharpBehaviour
     /// Genereates step sizes for towards and away from a color for each renderer.
     /// </summary>
     /// <param name="towards">the step size is towards a color or away from a color</param>
-    private void _SetStepSizes(bool towards)
+    private void _SetStepSizes(bool towards, bool isArray)
     {
         // TODO: Step size needs to be set for attack, decay, sustain, and release. not just attack and release.
-        if (_isArray)
+        if (isArray)
         {
             if (towards)
             {

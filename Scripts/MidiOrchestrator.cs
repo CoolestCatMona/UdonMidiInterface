@@ -61,20 +61,22 @@ public class MidiOrchestrator : UdonSharpBehaviour
     private int _noteValue;
     private int _padIndex;
     private string modeSelect = "NONE";
+    private string arrayIterationType = "PRLEL";
     private int _mode = 0;
+    private int _arrayIterationMode = 0;
     /// <summary>
     /// Synchronized Color (RGBA) for materials.
     /// </summary>
     /// Because I have multiple synchronized variables I am unsure if I should use the [FieldChangeCallback(string)] attribute
     /// https://udonsharp.docs.vrchat.com/udonsharp/#fieldchangecallback
     [UdonSynced]
-    private Color _color = new Color(0.0f, 0.0f, 0.0f, 1.0f);
+    private Color _color = Color.white;
 
     /// <summary>
     /// Multiplier for hue of color value, a value of 0 or 1 implies no change.
     /// </summary>
     [UdonSynced]
-    private float _hueShift;
+    private float _hueShift = 0.0f;
 
     /// <summary>
     /// Amount of time (s) to reach Max value from 0
@@ -107,7 +109,7 @@ public class MidiOrchestrator : UdonSharpBehaviour
     private float _intensityMult = 0.0f;
 
     [UdonSynced]
-    private int _startingArrayIndexOffset = -1;
+    private int _startingArrayIndexOffset = 0;
     [UdonSynced]
     private bool _delaySequentialIndexes = false; // Having an index offset implies that sequential indexes SHOULD be delayed
     [UdonSynced]
@@ -129,6 +131,7 @@ public class MidiOrchestrator : UdonSharpBehaviour
     [SerializeField] private int INTENSITYMULT = 77;
     [SerializeField] private int START_INDEX = 93;
     [SerializeField] private int MODE = 73;
+    [SerializeField] private int ARRAY_ITERATION_TYPE = 75;
 
     // When using pads, these values correspond to decrementing a value
     [SerializeField] private int RED_DEC = 0;
@@ -142,28 +145,7 @@ public class MidiOrchestrator : UdonSharpBehaviour
     [SerializeField] private int INTENSITYMULT_DEC = 0;
     [SerializeField] private int START_INDEX_DEC = 0;
     [SerializeField] private int MODE_DEC = 0;
-
-
-    /// <summary>
-    /// Numbers corresponding to pad button presses, these probably shouldn't change.
-    /// </summary>
-    private const int NOTE_0 = 0;
-    private const int NOTE_1 = 1;
-    private const int NOTE_2 = 2;
-    private const int NOTE_3 = 3;
-    private const int NOTE_4 = 4;
-    private const int NOTE_5 = 5;
-    private const int NOTE_6 = 6;
-    private const int NOTE_7 = 7;
-    private const int NOTE_8 = 8;
-    private const int NOTE_9 = 9;
-    private const int NOTE_10 = 10;
-    private const int NOTE_11 = 11;
-    private const int NOTE_12 = 12;
-    private const int NOTE_13 = 13;
-    private const int NOTE_14 = 14;
-    private const int NOTE_15 = 15;
-    private const int NOTE_16 = 16;
+    [SerializeField] private int ARRAY_ITERATION_TYPE_DEC = 0;
 
     /// <summary>
     /// Magic Numbers
@@ -288,53 +270,53 @@ public class MidiOrchestrator : UdonSharpBehaviour
         {
             switch (_noteValue)
             {
-                case NOTE_0:
-                    buttonEvents[NOTE_0].SendCustomNetworkEvent(VRC.Udon.Common.Interfaces.NetworkEventTarget.All, "MidiOnEvent");
+                case 0:
+                    buttonEvents[0].SendCustomNetworkEvent(VRC.Udon.Common.Interfaces.NetworkEventTarget.All, "MidiOnEvent");
                     break;
-                case NOTE_1:
-                    buttonEvents[NOTE_1].SendCustomNetworkEvent(VRC.Udon.Common.Interfaces.NetworkEventTarget.All, "MidiOnEvent");
+                case 1:
+                    buttonEvents[1].SendCustomNetworkEvent(VRC.Udon.Common.Interfaces.NetworkEventTarget.All, "MidiOnEvent");
                     break;
-                case NOTE_2:
-                    buttonEvents[NOTE_2].SendCustomNetworkEvent(VRC.Udon.Common.Interfaces.NetworkEventTarget.All, "MidiOnEvent");
+                case 2:
+                    buttonEvents[2].SendCustomNetworkEvent(VRC.Udon.Common.Interfaces.NetworkEventTarget.All, "MidiOnEvent");
                     break;
-                case NOTE_3:
-                    buttonEvents[NOTE_3].SendCustomNetworkEvent(VRC.Udon.Common.Interfaces.NetworkEventTarget.All, "MidiOnEvent");
+                case 3:
+                    buttonEvents[3].SendCustomNetworkEvent(VRC.Udon.Common.Interfaces.NetworkEventTarget.All, "MidiOnEvent");
                     break;
-                case NOTE_4:
-                    buttonEvents[NOTE_4].SendCustomNetworkEvent(VRC.Udon.Common.Interfaces.NetworkEventTarget.All, "MidiOnEvent");
+                case 4:
+                    buttonEvents[4].SendCustomNetworkEvent(VRC.Udon.Common.Interfaces.NetworkEventTarget.All, "MidiOnEvent");
                     break;
-                case NOTE_5:
-                    buttonEvents[NOTE_5].SendCustomNetworkEvent(VRC.Udon.Common.Interfaces.NetworkEventTarget.All, "MidiOnEvent");
+                case 5:
+                    buttonEvents[5].SendCustomNetworkEvent(VRC.Udon.Common.Interfaces.NetworkEventTarget.All, "MidiOnEvent");
                     break;
-                case NOTE_6:
-                    buttonEvents[NOTE_6].SendCustomNetworkEvent(VRC.Udon.Common.Interfaces.NetworkEventTarget.All, "MidiOnEvent");
+                case 6:
+                    buttonEvents[6].SendCustomNetworkEvent(VRC.Udon.Common.Interfaces.NetworkEventTarget.All, "MidiOnEvent");
                     break;
-                case NOTE_7:
-                    buttonEvents[NOTE_7].SendCustomNetworkEvent(VRC.Udon.Common.Interfaces.NetworkEventTarget.All, "MidiOnEvent");
+                case 7:
+                    buttonEvents[7].SendCustomNetworkEvent(VRC.Udon.Common.Interfaces.NetworkEventTarget.All, "MidiOnEvent");
                     break;
-                case NOTE_8:
-                    buttonEvents[NOTE_8].SendCustomNetworkEvent(VRC.Udon.Common.Interfaces.NetworkEventTarget.All, "MidiOnEvent");
+                case 8:
+                    buttonEvents[8].SendCustomNetworkEvent(VRC.Udon.Common.Interfaces.NetworkEventTarget.All, "MidiOnEvent");
                     break;
-                case NOTE_9:
-                    buttonEvents[NOTE_9].SendCustomNetworkEvent(VRC.Udon.Common.Interfaces.NetworkEventTarget.All, "MidiOnEvent");
+                case 9:
+                    buttonEvents[9].SendCustomNetworkEvent(VRC.Udon.Common.Interfaces.NetworkEventTarget.All, "MidiOnEvent");
                     break;
-                case NOTE_10:
-                    buttonEvents[NOTE_10].SendCustomNetworkEvent(VRC.Udon.Common.Interfaces.NetworkEventTarget.All, "MidiOnEvent");
+                case 10:
+                    buttonEvents[10].SendCustomNetworkEvent(VRC.Udon.Common.Interfaces.NetworkEventTarget.All, "MidiOnEvent");
                     break;
-                case NOTE_11:
-                    buttonEvents[NOTE_11].SendCustomNetworkEvent(VRC.Udon.Common.Interfaces.NetworkEventTarget.All, "MidiOnEvent");
+                case 11:
+                    buttonEvents[11].SendCustomNetworkEvent(VRC.Udon.Common.Interfaces.NetworkEventTarget.All, "MidiOnEvent");
                     break;
-                case NOTE_12:
-                    buttonEvents[NOTE_12].SendCustomNetworkEvent(VRC.Udon.Common.Interfaces.NetworkEventTarget.All, "MidiOnEvent");
+                case 12:
+                    buttonEvents[12].SendCustomNetworkEvent(VRC.Udon.Common.Interfaces.NetworkEventTarget.All, "MidiOnEvent");
                     break;
-                case NOTE_13:
-                    buttonEvents[NOTE_13].SendCustomNetworkEvent(VRC.Udon.Common.Interfaces.NetworkEventTarget.All, "MidiOnEvent");
+                case 13:
+                    buttonEvents[13].SendCustomNetworkEvent(VRC.Udon.Common.Interfaces.NetworkEventTarget.All, "MidiOnEvent");
                     break;
-                case NOTE_14:
-                    buttonEvents[NOTE_14].SendCustomNetworkEvent(VRC.Udon.Common.Interfaces.NetworkEventTarget.All, "MidiOnEvent");
+                case 14:
+                    buttonEvents[14].SendCustomNetworkEvent(VRC.Udon.Common.Interfaces.NetworkEventTarget.All, "MidiOnEvent");
                     break;
-                case NOTE_15:
-                    buttonEvents[NOTE_15].SendCustomNetworkEvent(VRC.Udon.Common.Interfaces.NetworkEventTarget.All, "MidiOnEvent");
+                case 15:
+                    buttonEvents[15].SendCustomNetworkEvent(VRC.Udon.Common.Interfaces.NetworkEventTarget.All, "MidiOnEvent");
                     break;
                 default:
                     if (velocity > 0) HandlePadCChange(number);
@@ -343,56 +325,55 @@ public class MidiOrchestrator : UdonSharpBehaviour
         }
         else
         {
-            Debug.Log($@"Off event because velocity = 0 for {_noteValue}");
             switch (_noteValue)
             {
-                case NOTE_0:
-                    buttonEvents[NOTE_0].SendCustomNetworkEvent(VRC.Udon.Common.Interfaces.NetworkEventTarget.All, "MidiOffEvent");
+                case 0:
+                    buttonEvents[0].SendCustomNetworkEvent(VRC.Udon.Common.Interfaces.NetworkEventTarget.All, "MidiOffEvent");
                     break;
-                case NOTE_1:
-                    buttonEvents[NOTE_1].SendCustomNetworkEvent(VRC.Udon.Common.Interfaces.NetworkEventTarget.All, "MidiOffEvent");
+                case 1:
+                    buttonEvents[1].SendCustomNetworkEvent(VRC.Udon.Common.Interfaces.NetworkEventTarget.All, "MidiOffEvent");
                     break;
-                case NOTE_2:
-                    buttonEvents[NOTE_2].SendCustomNetworkEvent(VRC.Udon.Common.Interfaces.NetworkEventTarget.All, "MidiOffEvent");
+                case 2:
+                    buttonEvents[2].SendCustomNetworkEvent(VRC.Udon.Common.Interfaces.NetworkEventTarget.All, "MidiOffEvent");
                     break;
-                case NOTE_3:
-                    buttonEvents[NOTE_3].SendCustomNetworkEvent(VRC.Udon.Common.Interfaces.NetworkEventTarget.All, "MidiOffEvent");
+                case 3:
+                    buttonEvents[3].SendCustomNetworkEvent(VRC.Udon.Common.Interfaces.NetworkEventTarget.All, "MidiOffEvent");
                     break;
-                case NOTE_4:
-                    buttonEvents[NOTE_4].SendCustomNetworkEvent(VRC.Udon.Common.Interfaces.NetworkEventTarget.All, "MidiOffEvent");
+                case 4:
+                    buttonEvents[4].SendCustomNetworkEvent(VRC.Udon.Common.Interfaces.NetworkEventTarget.All, "MidiOffEvent");
                     break;
-                case NOTE_5:
-                    buttonEvents[NOTE_5].SendCustomNetworkEvent(VRC.Udon.Common.Interfaces.NetworkEventTarget.All, "MidiOffEvent");
+                case 5:
+                    buttonEvents[5].SendCustomNetworkEvent(VRC.Udon.Common.Interfaces.NetworkEventTarget.All, "MidiOffEvent");
                     break;
-                case NOTE_6:
-                    buttonEvents[NOTE_6].SendCustomNetworkEvent(VRC.Udon.Common.Interfaces.NetworkEventTarget.All, "MidiOffEvent");
+                case 6:
+                    buttonEvents[6].SendCustomNetworkEvent(VRC.Udon.Common.Interfaces.NetworkEventTarget.All, "MidiOffEvent");
                     break;
-                case NOTE_7:
-                    buttonEvents[NOTE_7].SendCustomNetworkEvent(VRC.Udon.Common.Interfaces.NetworkEventTarget.All, "MidiOffEvent");
+                case 7:
+                    buttonEvents[7].SendCustomNetworkEvent(VRC.Udon.Common.Interfaces.NetworkEventTarget.All, "MidiOffEvent");
                     break;
-                case NOTE_8:
-                    buttonEvents[NOTE_8].SendCustomNetworkEvent(VRC.Udon.Common.Interfaces.NetworkEventTarget.All, "MidiOffEvent");
+                case 8:
+                    buttonEvents[8].SendCustomNetworkEvent(VRC.Udon.Common.Interfaces.NetworkEventTarget.All, "MidiOffEvent");
                     break;
-                case NOTE_9:
-                    buttonEvents[NOTE_9].SendCustomNetworkEvent(VRC.Udon.Common.Interfaces.NetworkEventTarget.All, "MidiOffEvent");
+                case 9:
+                    buttonEvents[9].SendCustomNetworkEvent(VRC.Udon.Common.Interfaces.NetworkEventTarget.All, "MidiOffEvent");
                     break;
-                case NOTE_10:
-                    buttonEvents[NOTE_10].SendCustomNetworkEvent(VRC.Udon.Common.Interfaces.NetworkEventTarget.All, "MidiOffEvent");
+                case 10:
+                    buttonEvents[10].SendCustomNetworkEvent(VRC.Udon.Common.Interfaces.NetworkEventTarget.All, "MidiOffEvent");
                     break;
-                case NOTE_11:
-                    buttonEvents[NOTE_11].SendCustomNetworkEvent(VRC.Udon.Common.Interfaces.NetworkEventTarget.All, "MidiOffEvent");
+                case 11:
+                    buttonEvents[11].SendCustomNetworkEvent(VRC.Udon.Common.Interfaces.NetworkEventTarget.All, "MidiOffEvent");
                     break;
-                case NOTE_12:
-                    buttonEvents[NOTE_12].SendCustomNetworkEvent(VRC.Udon.Common.Interfaces.NetworkEventTarget.All, "MidiOffEvent");
+                case 12:
+                    buttonEvents[12].SendCustomNetworkEvent(VRC.Udon.Common.Interfaces.NetworkEventTarget.All, "MidiOffEvent");
                     break;
-                case NOTE_13:
-                    buttonEvents[NOTE_13].SendCustomNetworkEvent(VRC.Udon.Common.Interfaces.NetworkEventTarget.All, "MidiOffEvent");
+                case 13:
+                    buttonEvents[13].SendCustomNetworkEvent(VRC.Udon.Common.Interfaces.NetworkEventTarget.All, "MidiOffEvent");
                     break;
-                case NOTE_14:
-                    buttonEvents[NOTE_14].SendCustomNetworkEvent(VRC.Udon.Common.Interfaces.NetworkEventTarget.All, "MidiOffEvent");
+                case 14:
+                    buttonEvents[14].SendCustomNetworkEvent(VRC.Udon.Common.Interfaces.NetworkEventTarget.All, "MidiOffEvent");
                     break;
-                case NOTE_15:
-                    buttonEvents[NOTE_15].SendCustomNetworkEvent(VRC.Udon.Common.Interfaces.NetworkEventTarget.All, "MidiOffEvent");
+                case 15:
+                    buttonEvents[15].SendCustomNetworkEvent(VRC.Udon.Common.Interfaces.NetworkEventTarget.All, "MidiOffEvent");
                     break;
                 default:
                     break;
@@ -419,55 +400,56 @@ public class MidiOrchestrator : UdonSharpBehaviour
 
         if (usesVisualizer & number < padStop)
             MidiVisualizer.SetProgramVariable("_padIndex", _noteValue);
+
         switch (_noteValue)
         {
-            case NOTE_0:
-                buttonEvents[NOTE_0].SendCustomNetworkEvent(VRC.Udon.Common.Interfaces.NetworkEventTarget.All, "MidiOffEvent");
+            case 0:
+                buttonEvents[0].SendCustomNetworkEvent(VRC.Udon.Common.Interfaces.NetworkEventTarget.All, "MidiOffEvent");
                 break;
-            case NOTE_1:
-                buttonEvents[NOTE_1].SendCustomNetworkEvent(VRC.Udon.Common.Interfaces.NetworkEventTarget.All, "MidiOffEvent");
+            case 1:
+                buttonEvents[1].SendCustomNetworkEvent(VRC.Udon.Common.Interfaces.NetworkEventTarget.All, "MidiOffEvent");
                 break;
-            case NOTE_2:
-                buttonEvents[NOTE_2].SendCustomNetworkEvent(VRC.Udon.Common.Interfaces.NetworkEventTarget.All, "MidiOffEvent");
+            case 2:
+                buttonEvents[2].SendCustomNetworkEvent(VRC.Udon.Common.Interfaces.NetworkEventTarget.All, "MidiOffEvent");
                 break;
-            case NOTE_3:
-                buttonEvents[NOTE_3].SendCustomNetworkEvent(VRC.Udon.Common.Interfaces.NetworkEventTarget.All, "MidiOffEvent");
+            case 3:
+                buttonEvents[3].SendCustomNetworkEvent(VRC.Udon.Common.Interfaces.NetworkEventTarget.All, "MidiOffEvent");
                 break;
-            case NOTE_4:
-                buttonEvents[NOTE_4].SendCustomNetworkEvent(VRC.Udon.Common.Interfaces.NetworkEventTarget.All, "MidiOffEvent");
+            case 4:
+                buttonEvents[4].SendCustomNetworkEvent(VRC.Udon.Common.Interfaces.NetworkEventTarget.All, "MidiOffEvent");
                 break;
-            case NOTE_5:
-                buttonEvents[NOTE_5].SendCustomNetworkEvent(VRC.Udon.Common.Interfaces.NetworkEventTarget.All, "MidiOffEvent");
+            case 5:
+                buttonEvents[5].SendCustomNetworkEvent(VRC.Udon.Common.Interfaces.NetworkEventTarget.All, "MidiOffEvent");
                 break;
-            case NOTE_6:
-                buttonEvents[NOTE_6].SendCustomNetworkEvent(VRC.Udon.Common.Interfaces.NetworkEventTarget.All, "MidiOffEvent");
+            case 6:
+                buttonEvents[6].SendCustomNetworkEvent(VRC.Udon.Common.Interfaces.NetworkEventTarget.All, "MidiOffEvent");
                 break;
-            case NOTE_7:
-                buttonEvents[NOTE_7].SendCustomNetworkEvent(VRC.Udon.Common.Interfaces.NetworkEventTarget.All, "MidiOffEvent");
+            case 7:
+                buttonEvents[7].SendCustomNetworkEvent(VRC.Udon.Common.Interfaces.NetworkEventTarget.All, "MidiOffEvent");
                 break;
-            case NOTE_8:
-                buttonEvents[NOTE_8].SendCustomNetworkEvent(VRC.Udon.Common.Interfaces.NetworkEventTarget.All, "MidiOffEvent");
+            case 8:
+                buttonEvents[8].SendCustomNetworkEvent(VRC.Udon.Common.Interfaces.NetworkEventTarget.All, "MidiOffEvent");
                 break;
-            case NOTE_9:
-                buttonEvents[NOTE_9].SendCustomNetworkEvent(VRC.Udon.Common.Interfaces.NetworkEventTarget.All, "MidiOffEvent");
+            case 9:
+                buttonEvents[9].SendCustomNetworkEvent(VRC.Udon.Common.Interfaces.NetworkEventTarget.All, "MidiOffEvent");
                 break;
-            case NOTE_10:
-                buttonEvents[NOTE_10].SendCustomNetworkEvent(VRC.Udon.Common.Interfaces.NetworkEventTarget.All, "MidiOffEvent");
+            case 10:
+                buttonEvents[10].SendCustomNetworkEvent(VRC.Udon.Common.Interfaces.NetworkEventTarget.All, "MidiOffEvent");
                 break;
-            case NOTE_11:
-                buttonEvents[NOTE_11].SendCustomNetworkEvent(VRC.Udon.Common.Interfaces.NetworkEventTarget.All, "MidiOffEvent");
+            case 11:
+                buttonEvents[11].SendCustomNetworkEvent(VRC.Udon.Common.Interfaces.NetworkEventTarget.All, "MidiOffEvent");
                 break;
-            case NOTE_12:
-                buttonEvents[NOTE_12].SendCustomNetworkEvent(VRC.Udon.Common.Interfaces.NetworkEventTarget.All, "MidiOffEvent");
+            case 12:
+                buttonEvents[12].SendCustomNetworkEvent(VRC.Udon.Common.Interfaces.NetworkEventTarget.All, "MidiOffEvent");
                 break;
-            case NOTE_13:
-                buttonEvents[NOTE_13].SendCustomNetworkEvent(VRC.Udon.Common.Interfaces.NetworkEventTarget.All, "MidiOffEvent");
+            case 13:
+                buttonEvents[13].SendCustomNetworkEvent(VRC.Udon.Common.Interfaces.NetworkEventTarget.All, "MidiOffEvent");
                 break;
-            case NOTE_14:
-                buttonEvents[NOTE_14].SendCustomNetworkEvent(VRC.Udon.Common.Interfaces.NetworkEventTarget.All, "MidiOffEvent");
+            case 14:
+                buttonEvents[14].SendCustomNetworkEvent(VRC.Udon.Common.Interfaces.NetworkEventTarget.All, "MidiOffEvent");
                 break;
-            case NOTE_15:
-                buttonEvents[NOTE_15].SendCustomNetworkEvent(VRC.Udon.Common.Interfaces.NetworkEventTarget.All, "MidiOffEvent");
+            case 15:
+                buttonEvents[15].SendCustomNetworkEvent(VRC.Udon.Common.Interfaces.NetworkEventTarget.All, "MidiOffEvent");
                 break;
             default:
                 break;
@@ -532,16 +514,19 @@ public class MidiOrchestrator : UdonSharpBehaviour
         }
         else if (number == START_INDEX)
         {
-            // Having a starting index implies that there should be a delay
-
-            _startingArrayIndexOffset = (int)((value_nrm * (float)MAX_STARTING_INDEX) - 1.0f);
-            _delaySequentialIndexes = _startingArrayIndexOffset == -1 ? false : true;
+            _startingArrayIndexOffset = (int)((value_nrm * (float)MAX_STARTING_INDEX));
         }
         else if (number == MODE)
         {
             int mode_nrm;
             mode_nrm = (int)(value_nrm * 4.0f);
             HandleModeSwitch(mode_nrm);
+        }
+        else if (number == ARRAY_ITERATION_TYPE)
+        {
+            int mode_nrm;
+            mode_nrm = (int)(value_nrm * 3.0f);
+            HandleArrayIterationSwitch(mode_nrm);
         }
         else
         {
@@ -576,6 +561,7 @@ public class MidiOrchestrator : UdonSharpBehaviour
             MidiVisualizer.SetProgramVariable("_intensityMult", _intensityMult);
             MidiVisualizer.SetProgramVariable("startingArrayIndexOffset", _startingArrayIndexOffset);
             MidiVisualizer.SetProgramVariable("modeSelect", modeSelect);
+            MidiVisualizer.SetProgramVariable("arrayIterationType", arrayIterationType);
 
         }
 
@@ -682,12 +668,10 @@ public class MidiOrchestrator : UdonSharpBehaviour
         else if (note == START_INDEX)
         {
             _startingArrayIndexOffset = _startingArrayIndexOffset >= MAX_STARTING_INDEX ? MAX_STARTING_INDEX : _startingArrayIndexOffset + 1;
-            _delaySequentialIndexes = _startingArrayIndexOffset == -1 ? false : true;
         }
         else if (note == START_INDEX_DEC)
         {
             _startingArrayIndexOffset = _startingArrayIndexOffset <= 0 ? 0 : _startingArrayIndexOffset - 1;
-            _delaySequentialIndexes = _startingArrayIndexOffset == -1 ? false : true;
         }
         else if (note == MODE)
         {
@@ -698,6 +682,16 @@ public class MidiOrchestrator : UdonSharpBehaviour
         {
             _mode = _mode <= 0 ? 0 : _mode - 1;
             HandleModeSwitch(_mode);
+        }
+        else if (note == ARRAY_ITERATION_TYPE)
+        {
+            _arrayIterationMode = _arrayIterationMode >= 3 ? 3 : _mode + 1;
+            HandleArrayIterationSwitch(_mode);
+        }
+        else if (note == ARRAY_ITERATION_TYPE_DEC)
+        {
+            _arrayIterationMode = _arrayIterationMode <= 0 ? 0 : _mode - 1;
+            HandleArrayIterationSwitch(_mode);
         }
         else
         {
@@ -732,9 +726,8 @@ public class MidiOrchestrator : UdonSharpBehaviour
             MidiVisualizer.SetProgramVariable("_intensityMult", _intensityMult);
             MidiVisualizer.SetProgramVariable("startingArrayIndexOffset", _startingArrayIndexOffset);
             MidiVisualizer.SetProgramVariable("modeSelect", modeSelect);
-
+            MidiVisualizer.SetProgramVariable("arrayIterationType", arrayIterationType);
         }
-
         RequestSerialization();
     }
     /// <summary>
@@ -759,27 +752,44 @@ public class MidiOrchestrator : UdonSharpBehaviour
             case 0:
                 modeSelect = "NONE";
                 _useBehaviorIndex = false;
-                _updateArrayElementsInSequence = false;
                 break;
             case 1:
-                modeSelect = "SKIP";
+                modeSelect = "SKIP1";
                 _useBehaviorIndex = true;
-                _updateArrayElementsInSequence = false;
                 break;
             case 2:
-                modeSelect = "INDV";
-                _useBehaviorIndex = false;
-                _updateArrayElementsInSequence = true;
-                break;
-            case 3:
-                modeSelect = "SkpIn";
+                modeSelect = "SKIP2";
                 _useBehaviorIndex = true;
-                _updateArrayElementsInSequence = true;
                 break;
             default:
                 modeSelect = "UNIMP";
                 _useBehaviorIndex = false;
+                break;
+        }
+    }
+    public void HandleArrayIterationSwitch(float modeSelection)
+    {
+        switch (modeSelection)
+        {
+            case 0:
+                arrayIterationType = "PRLEL";
+                _delaySequentialIndexes = false;
                 _updateArrayElementsInSequence = false;
+                break;
+            case 1:
+                arrayIterationType = "SEQTL";
+                _delaySequentialIndexes = true;
+                _updateArrayElementsInSequence = false;
+                break;
+            case 2:
+                arrayIterationType = "INDIV";
+                _delaySequentialIndexes = false;
+                _updateArrayElementsInSequence = true;
+                break;
+            default:
+                arrayIterationType = "UNIMP";
+                _delaySequentialIndexes = false;
+                _updateArrayElementsInSequence = true;
                 break;
         }
     }
