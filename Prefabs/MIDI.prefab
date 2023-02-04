@@ -90,7 +90,7 @@ MonoBehaviour:
   START_INDEX_DEC: 81
   MODE_DEC: 83
   ARRAY_ITERATION_TYPE_DEC: 85
-  MAX_STARTING_INDEX: 1
+  MAX_STARTING_INDEX: 16
 --- !u!114 &53525657389628731
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -172,7 +172,7 @@ GameObject:
   m_Component:
   - component: {fileID: 7319768842716184843}
   m_Layer: 0
-  m_Name: MIDI 1
+  m_Name: MIDI
   m_TagString: Untagged
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
