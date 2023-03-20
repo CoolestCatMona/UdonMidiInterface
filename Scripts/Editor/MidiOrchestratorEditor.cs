@@ -153,15 +153,15 @@ public class MidiOrchestratorEditor : Editor
         {
             // Magic numbers used below, IYKYK
             case CUSTOM_CONTROLLER:
-                ControllerSpecificSettings(36, 52, new int[] {10, 74, 71, 76, 114, 18, 19, 16, 77, 93, 73}, false, useDefaults, foldoutState);
+                ControllerSpecificSettings(36, 52, new int[] {10, 74, 71, 76, 114, 18, 19, 16, 77, 93, 73, 75}, false, useDefaults, foldoutState);
                 break;
             case 1:
                 if (foldoutState) EditorGUILayout.HelpBox(help_text, MessageType.Info, true);
-                ControllerSpecificSettings(36, 52, new int[] {10, 74, 71, 76, 114, 18, 19, 16, 77, 93, 73}, false, useDefaults, foldoutState);
+                ControllerSpecificSettings(36, 52, new int[] {10, 74, 71, 76, 114, 18, 19, 16, 77, 93, 73, 75}, false, useDefaults, foldoutState);
                 break;
             case 2:
                 if (foldoutState) EditorGUILayout.HelpBox(help_text, MessageType.Info, true);
-                ControllerSpecificSettings(48, 80, new int[] {65, 64, 69, 68, 73, 72, 77, 76, 67, 66, 71, 70, 75, 74, 79, 78, 80, 79, 82, 81, 84, 83}, true, useDefaults, foldoutState);
+                ControllerSpecificSettings(48, 80, new int[] {65, 64, 69, 68, 73, 72, 77, 76, 67, 66, 71, 70, 75, 74, 79, 78, 80, 79, 82, 81, 84, 83, 86, 85}, true, useDefaults, foldoutState);
                 break;
             default:
                 Debug.LogError("Unrecognized Option");
@@ -214,6 +214,7 @@ public class MidiOrchestratorEditor : Editor
             var intensitymult_P = serializedObject.FindProperty("INTENSITYMULT");
             var startIndex_P = serializedObject.FindProperty("START_INDEX");
             var mode_P = serializedObject.FindProperty("MODE");
+            var arrayIter_P = serializedObject.FindProperty("ARRAY_ITERATION_TYPE");
 
             var red_M = serializedObject.FindProperty("RED_DEC");
             var green_M = serializedObject.FindProperty("GREEN_DEC");
@@ -228,6 +229,7 @@ public class MidiOrchestratorEditor : Editor
             var padStop = serializedObject.FindProperty("padStop");
             var startIndex_M = serializedObject.FindProperty("START_INDEX_DEC");
             var mode_M = serializedObject.FindProperty("MODE_DEC");
+            var arrayIter_M = serializedObject.FindProperty("ARRAY_ITERATION_TYPE_DEC");
 
             if(useDefaults)
             {
@@ -253,6 +255,8 @@ public class MidiOrchestratorEditor : Editor
                 startIndex_M.intValue = cc_array[19];
                 mode_P.intValue = cc_array[20];
                 mode_M.intValue = cc_array[21];
+                arrayIter_P.intValue = cc_array[22];
+                arrayIter_M.intValue = cc_array[23];
                 padChangeAmnt.floatValue = .05f;
                 padStop.intValue = 64;
             }
@@ -296,6 +300,9 @@ public class MidiOrchestratorEditor : Editor
                 EditorGUILayout.Space();
                 EditorGUILayout.PropertyField(mode_P,new GUIContent("Mode+"),  true);
                 EditorGUILayout.PropertyField(mode_M,new GUIContent("Mode-"),  true);
+                EditorGUILayout.Space();
+                EditorGUILayout.PropertyField(arrayIter_P,new GUIContent("Array Iteration Type +"),  true);
+                EditorGUILayout.PropertyField(arrayIter_M,new GUIContent("Array Iteration Type -"),  true);
             }
         }
         else
@@ -311,6 +318,7 @@ public class MidiOrchestratorEditor : Editor
             var intensitymult_CC = serializedObject.FindProperty("INTENSITYMULT");
             var startIndex_CC = serializedObject.FindProperty("START_INDEX");
             var mode_CC = serializedObject.FindProperty("MODE");
+            var arrayIter_CC = serializedObject.FindProperty("ARRAY_ITERATION_TYPE");
 
             if(useDefaults)
             {
@@ -325,6 +333,7 @@ public class MidiOrchestratorEditor : Editor
                 intensitymult_CC.intValue = cc_array[8];
                 startIndex_CC.intValue = cc_array[9];
                 mode_CC.intValue = cc_array[10];
+                arrayIter_CC.intValue = cc_array[11];
             }
 
             if(draw)
@@ -340,6 +349,7 @@ public class MidiOrchestratorEditor : Editor
                 EditorGUILayout.PropertyField(intensitymult_CC,new GUIContent("Intensity CC"),  true);
                 EditorGUILayout.PropertyField(startIndex_CC,new GUIContent("Start Index CC"),  true);
                 EditorGUILayout.PropertyField(mode_CC,new GUIContent("Mode CC"),  true);
+                EditorGUILayout.PropertyField(arrayIter_CC,new GUIContent("Array Iteration Type CC"),  true);
             }
         }
         EditorGUI.indentLevel--;
