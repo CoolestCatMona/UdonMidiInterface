@@ -10,7 +10,7 @@ This project is being designed and tested with the [Arturia Beatstep Pro](https:
 
 This project should theoretically work with any MIDI device by modifying the `minNote` and `maxNote` parameters on the `MidiOrchestrator` behavior.
 
-To change the value of the CCs, the [MidiOrchestrator.cs](https://github.com/SeanmanX/UdonMidiInterface/blob/main/Scripts/MidiOrchestrator.cs) script itself needs to be modified
+To change the value of the CCs, the [MidiOrchestrator.cs](https://github.com/CoolestCatMona/UdonMidiInterface/blob/main/Scripts/MidiOrchestrator.cs) script itself needs to be modified
 
 One can utilize the [Udon Midi Test](https://vrchat.com/home/world/wrld_f8bc6485-dcdf-4646-89d8-14e4772561ee) world or a similar third party program to find out their control/note numbers mapping.
 
