@@ -140,7 +140,7 @@ public class MidiValueVisualizer : UdonSharpBehaviour
             _sustain = value;
             sustainText.text = _sustain.ToString("0.000");
         }
-        get => _attack;
+        get => _sustain;
     }
     public float Release
     {

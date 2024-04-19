@@ -12,11 +12,11 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: c333ccfdd0cbdbc4ca30cef2dd6e6b9b, type: 3}
   m_Name: MidiOrchestrator
   m_EditorClassIdentifier: 
-  serializedUdonProgramAsset: {fileID: 11400000, guid: 6c1c281429fa3674db61a1726fa2ffab,
+  serializedUdonProgramAsset: {fileID: 11400000, guid: 8b0e41a3d5eca3d4f82d92208290111e,
     type: 2}
   udonAssembly: 
   assemblyError: 
-  sourceCsScript: {fileID: 11500000, guid: 26e6172523715b84da99127f3ace2f71, type: 3}
+  sourceCsScript: {fileID: 11500000, guid: d7778137e1fb04842a7e94503007e777, type: 3}
   scriptVersion: 2
   compiledVersion: 2
   behaviourSyncMode: 4

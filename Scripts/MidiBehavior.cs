@@ -132,7 +132,7 @@ public class MidiBehavior : UdonSharpBehaviour
             for (int i = 0; i < _numRenderers; i++)
             {
                 var block = new MaterialPropertyBlock();
-                _UpdateRendererMaterialProperties(_childRenderers[i], block, _currentColor);
+                _UpdateRendererMaterialProperties(_childRenderers[i], block, _currentColor, intensityMult);
                 _UpdateAreaLit(usesAreaLit, _AreaLitChildRenderers[i], _currentColor, intensityMult);
             }
         }
@@ -145,7 +145,7 @@ public class MidiBehavior : UdonSharpBehaviour
             _Renderer = transform.GetComponent<Renderer>();
             _Renderer_Off = _Renderer;
             var block = new MaterialPropertyBlock();
-            _UpdateRendererMaterialProperties(_Renderer, block, _currentColor);
+            _UpdateRendererMaterialProperties(_Renderer, block, _currentColor, (float)Math.Pow(2.0, (double)intensityMult));
 
             if (usesAreaLit)
             {
@@ -266,14 +266,14 @@ public class MidiBehavior : UdonSharpBehaviour
         if (Vec4AlmostEquals(_currentColorVec4, targetColorVec4))
         {
             Color _targetColor = targetColorVec4;
-            _UpdateRendererMaterialProperties(renderer, block, _targetColor);
+            _UpdateRendererMaterialProperties(renderer, block, _targetColor, _targetIntensity);
             _UpdateAreaLit(usesAreaLit, areaLitRenderer, _targetColor, _targetIntensity);
             updateCompleted = true;
         }
         else
         {
             _updatedColor = _UpdateColor(_currentColorVec4, targetColorVec4, step);
-            _UpdateRendererMaterialProperties(renderer, block, _updatedColor);
+            _UpdateRendererMaterialProperties(renderer, block, _updatedColor, _targetIntensity);
             _UpdateAreaLit(usesAreaLit, areaLitRenderer, _updatedColor, _targetIntensity);
         }
         return updateCompleted;
@@ -392,7 +392,7 @@ public class MidiBehavior : UdonSharpBehaviour
             if (!Vec4AlmostEquals(_currentColorVec4, _colorAtOffEvent))
             {
                 _updatedColor = _UpdateColor(_currentColorVec4, _colorAtOffEvent, _step_away[i]);
-                _UpdateRendererMaterialProperties(_remainingRenderers[i], block, _updatedColor);
+                _UpdateRendererMaterialProperties(_remainingRenderers[i], block, _updatedColor, _targetIntensity);
                 _UpdateAreaLit(usesAreaLit, _AreaLitChildRenderers[i], _updatedColor, _targetIntensity);
             }
         }
@@ -645,9 +645,13 @@ public class MidiBehavior : UdonSharpBehaviour
     /// <param name="renderer">Renderer to update</param>
     /// <param name="block">Material Property Block</param>
     /// <param name="col">Color to update to</param>
-    private void _UpdateRendererMaterialProperties(Renderer renderer, MaterialPropertyBlock block, Color col)
+    private void _UpdateRendererMaterialProperties(Renderer renderer, MaterialPropertyBlock block, Color col, float intensity)
     {
-        block.SetColor(_EmissionColor, col);
+        block.SetColor(_EmissionColor, new Color(col.r * intensity,
+                                                col.g * intensity,
+                                                col.b * intensity,
+                                                col.a * intensity));
+        // block.SetColor(_EmissionColor, col);
         block.SetColor(_Color, col);
         renderer.SetPropertyBlock(block);
     }
