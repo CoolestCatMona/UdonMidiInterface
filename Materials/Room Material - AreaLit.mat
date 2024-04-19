@@ -2,14 +2,20 @@
 %TAG !u! tag:unity3d.com,2011:
 --- !u!21 &2100000
 Material:
-  serializedVersion: 6
+  serializedVersion: 8
   m_ObjectHideFlags: 0
   m_CorrespondingSourceObject: {fileID: 0}
   m_PrefabInstance: {fileID: 0}
   m_PrefabAsset: {fileID: 0}
   m_Name: Room Material - AreaLit
   m_Shader: {fileID: 4800000, guid: 8af9b9a7320d5044aaa4f5ce529bb22b, type: 3}
-  m_ShaderKeywords: LTCGI _BICUBIC_SAMPLING_ON _NORMALMAP
+  m_Parent: {fileID: 0}
+  m_ModifiedSerializedProperties: 0
+  m_ValidKeywords:
+  - _NORMALMAP
+  m_InvalidKeywords:
+  - LTCGI
+  - _BICUBIC_SAMPLING_ON
   m_LightmapFlags: 4
   m_EnableInstancingVariants: 1
   m_DoubleSidedGI: 0
@@ -17,6 +23,7 @@ Material:
   stringTagMap: {}
   disabledShaderPasses:
   - ALWAYS
+  m_LockedProperties: 
   m_SavedProperties:
     serializedVersion: 3
     m_TexEnvs:
@@ -29,7 +36,7 @@ Material:
         m_Scale: {x: 1, y: 1}
         m_Offset: {x: 0, y: 0}
     - _BumpMap:
-        m_Texture: {fileID: 2800000, guid: b50ea1005a67db84588860a8bbb95775, type: 3}
+        m_Texture: {fileID: 2800000, guid: 9c03801f413e7584a884147a3adce8e1, type: 3}
         m_Scale: {x: 1, y: 1}
         m_Offset: {x: 0, y: 0}
     - _DetailAOMap:
@@ -78,6 +85,10 @@ Material:
         m_Offset: {x: 0, y: 0}
     - _LightMesh:
         m_Texture: {fileID: 8400000, guid: e4a5cbbca57371a41b09df84477364b1, type: 2}
+        m_Scale: {x: 1, y: 1}
+        m_Offset: {x: 0, y: 0}
+    - _LightTex:
+        m_Texture: {fileID: 0}
         m_Scale: {x: 1, y: 1}
         m_Offset: {x: 0, y: 0}
     - _LightTex0:
@@ -168,6 +179,7 @@ Material:
         m_Texture: {fileID: 0}
         m_Scale: {x: 1, y: 1}
         m_Offset: {x: 0, y: 0}
+    m_Ints: []
     m_Floats:
     - BAKERY_META_ALPHA_ENABLE: 1
     - _ACES: 0
@@ -228,7 +240,7 @@ Material:
     - _GSAA: 0
     - _GSAAStrength: 1
     - _GlossMapScale: 1
-    - _Glossiness: 0.5
+    - _Glossiness: 0.7
     - _GlossyReflections: 1
     - _HDRReflShad: 0
     - _HeightChannel: 3
@@ -241,6 +253,11 @@ Material:
     - _LTCGIStrength: 4
     - _LTCGI_DIFFUSE_OFF: 0
     - _LTCGI_SPECULAR_OFF: 0
+    - _LightChannel: 1
+    - _LightTexIndex: 0
+    - _LightTexPass: 0
+    - _LightTopology: 0
+    - _LightUVSet: 0
     - _MetaCull: 0
     - _Metallic: 0.5
     - _MetallicChannel: 2
@@ -318,6 +335,7 @@ Material:
     - _Color: {r: 1, g: 1, b: 1, a: 1}
     - _DetailColor: {r: 1, g: 1, b: 1, a: 1}
     - _EmissionColor: {r: 0, g: 0, b: 0, a: 1}
+    - _LightColor: {r: 1, g: 1, b: 1, a: 1}
     - _RimCol: {r: 1, g: 1, b: 1, a: 1}
     - _ScatterCol: {r: 1, g: 1, b: 1, a: 1}
     - _TintReflShad: {r: 1, g: 1, b: 1, a: 1}
@@ -328,3 +346,4 @@ Material:
     - _UV4Scroll: {r: 0, g: 0, b: 0, a: 0}
     - _UV5Scroll: {r: 0, g: 0, b: 0, a: 0}
     - _UVRimMaskScroll: {r: 0, g: 0, b: 0, a: 0}
+  m_BuildTextureStacks: []

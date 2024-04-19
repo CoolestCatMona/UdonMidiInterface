@@ -12,11 +12,11 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: c333ccfdd0cbdbc4ca30cef2dd6e6b9b, type: 3}
   m_Name: MidiValueVisualizer
   m_EditorClassIdentifier: 
-  serializedUdonProgramAsset: {fileID: 11400000, guid: 0615698309ef7f14fa2d7dc8d12e28ee,
+  serializedUdonProgramAsset: {fileID: 11400000, guid: a5c6cf83d05d94642a28dd8d7f75a7b1,
     type: 2}
   udonAssembly: 
   assemblyError: 
-  sourceCsScript: {fileID: 11500000, guid: 9085217b979b53d439e2e1e58a73c00c, type: 3}
+  sourceCsScript: {fileID: 11500000, guid: aef30014261cd0b46930a430860f2fb1, type: 3}
   scriptVersion: 2
   compiledVersion: 2
   behaviourSyncMode: 2

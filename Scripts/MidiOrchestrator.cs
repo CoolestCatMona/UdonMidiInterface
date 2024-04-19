@@ -24,7 +24,7 @@ public class MidiOrchestrator : UdonSharpBehaviour
     [Tooltip("When using pads as CCs, this is the value that separates pad values from CC values")]
     public int padStop = 0;
     [Tooltip("Maximum amount of time (s) it should take for any change in material to occur")]
-    public int maxTime = 0;
+    public int maxTime = 1;
     [Tooltip("Update rate (Hz). Higher update rates are more computationally expensive. A good value is between 10-20Hz")]
     [Range(1, 50)]
     public int updateRate = 0;
@@ -261,8 +261,7 @@ public class MidiOrchestrator : UdonSharpBehaviour
             return;
 
         _noteValue = number - minNote;
-
-        if (usesVisualizer & (number < padStop))
+        if (usesVisualizer & ((number < padStop) | (padStop == 0)))
             MidiVisualizer.SetProgramVariable("_padIndex", _noteValue);
 
 
@@ -471,7 +470,6 @@ public class MidiOrchestrator : UdonSharpBehaviour
         if (!Networking.IsOwner(gameObject))
             Networking.SetOwner(Networking.LocalPlayer, gameObject);
         float value_nrm = (float)value / CC_MAX;
-
         if (number == RED)
         {
             _r = value_nrm;
